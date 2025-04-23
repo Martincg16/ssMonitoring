@@ -27,7 +27,7 @@ class GeneracionEnergiaDiaria(models.Model):
     
 class Inversor(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
-    serial_inversor = models.CharField(max_length=100, verbose_name= 'serial del inversor')
+    serial_inversor = models.CharField(max_length=100, verbose_name= 'serial del inversor', default="")
 
 class GeneracionInversorDiaria(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
@@ -42,7 +42,7 @@ class MPPT(models.Model):
 
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
     id_inversor = models.ForeignKey(Inversor, on_delete=models.CASCADE)
-    serial_mppt = models.CharField(max_length=100, verbose_name= 'serial del mppt')
+    serial_mppt = models.CharField(max_length=100, verbose_name= 'serial del mppt', default="")
 
 class GeneracionMPPTDiaria(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')

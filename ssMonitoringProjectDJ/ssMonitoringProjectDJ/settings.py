@@ -76,8 +76,12 @@ WSGI_APPLICATION = 'ssMonitoringProjectDJ.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': 'password',
+        'HOST': 'ssmonitoring1.cfc4mu6gaw2m.us-east-1.rds.amazonaws.com',
+        'PORT': '5432',
     }
 }
 

@@ -18,7 +18,13 @@ from django.contrib import admin
 from django.urls import path
 from .views import ListProyectos, DetailProyecto
 
+from rest_framework.routers import DefaultRouter
+from .viewsets import ProyectoViewSet
+
+router = DefaultRouter()
+router.register('proyectos', ProyectoViewSet)
+
 urlpatterns = [
-    path('proyectos/', ListProyectos.as_view(), name='list_proyectos'),
-    path('proyectos/<int:pk>/', DetailProyecto.as_view(), name='detail_proyecto'),
-]
+#    path('proyectos/', ListProyectos.as_view(), name='list_proyectos'),
+#    path('proyectos/<int:pk>/', DetailProyecto.as_view(), name='detail_proyecto'),
+] + router.urls

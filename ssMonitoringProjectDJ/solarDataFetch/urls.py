@@ -24,7 +24,4 @@ from .viewsets import ProyectoViewSet
 router = DefaultRouter()
 router.register('proyectos', ProyectoViewSet)
 
-urlpatterns = [
-#    path('proyectos/', ListProyectos.as_view(), name='list_proyectos'),
-#    path('proyectos/<int:pk>/', DetailProyecto.as_view(), name='detail_proyecto'),
-] + router.urls
+urlpatterns = []

@@ -17,7 +17,7 @@ class Proyecto(models.Model):
     energia_minima_mes = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía mínima prometida en el mes', null=True, blank=True)
     fecha_entrada_en_operacion = models.DateField(verbose_name= 'fecha de entrada en operación')
     restriccion_de_autoconsumo = models.BooleanField(default=False, verbose_name= 'tiene restricción de autoconsumo')
-    identificador_marca = models.CharField(max_length=100, verbose_name= 'identificador de marca', null=True, blank=True)
+    identificador_planta = models.CharField(max_length=100, verbose_name= 'identificador de marca', null=True, blank=True)
     marca_inversor = models.ForeignKey(MarcasInversores, on_delete=models.CASCADE, verbose_name= 'marca de inversor', null=True, blank=True)
 
     def __str__(self):
@@ -31,18 +31,25 @@ class GeneracionEnergiaDiaria(models.Model):
     energia_generada_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía generada en el día')
     fecha_generacion_dia = models.DateField(verbose_name= 'fecha de generación')
 
+    class Meta:
+        unique_together = ('id_proyecto', 'fecha_generacion_dia')
+
     def __str__(self):
         return f'p{self.id_proyecto}: {self.energia_generada_dia}'
 
 class Inversor(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
-    serial_inversor = models.CharField(max_length=100, verbose_name= 'serial del inversor', default="")
+    identificador_inversor = models.CharField(max_length=100, verbose_name= 'serial del inversor', default="")
+    huawei_devTypeId = models.CharField(max_length=5, verbose_name= 'huawei devTypeId', null=True, blank=True)
 
 class GeneracionInversorDiaria(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
     id_inversor = models.ForeignKey(Inversor, on_delete=models.CASCADE)
     energia_generada_inversor_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía por inversor generada en el día')
     fecha_generacion_inversor_dia = models.DateField(verbose_name= 'fecha de generación por inversor')
+
+    class Meta:
+        unique_together = ('id_proyecto', 'id_inversor', 'fecha_generacion_inversor_dia')
 
     def __str__(self):
         return f'p{self.id_proyecto} - i{self.id_inversor}: {self.energia_generada_inversor_dia}'

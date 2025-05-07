@@ -17,6 +17,7 @@ class Command(BaseCommand):
 
         batch_number = 1
         while True:
+            self.stdout.write(self.style.NOTICE(f'Processing batch {batch_number}...'))
             retry = False
             for attempt in range(2):  # Allow one retry per batch
                 try:

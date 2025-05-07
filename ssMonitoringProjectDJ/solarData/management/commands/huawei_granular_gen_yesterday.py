@@ -18,7 +18,7 @@ class Command(BaseCommand):
         collect_time_0 = fetcher.midnight_gmt5_timestamp(datetime.combine(date_obj, datetime.min.time()))
         collect_time_1 = fetcher.midnight_gmt5_timestamp(datetime.combine(date_obj + timedelta(days=1), datetime.min.time()))
 
-        dev_type_ids = ["1"]
+        dev_type_ids = ["1", "38"]
         BATCH_SIZE = 10  # Must match fetcher batch size
         for dev_type_id in dev_type_ids:
             batch_number = 1

@@ -1,7 +1,7 @@
 import requests
 from solarData.models import Proyecto, Inversor
 
-def register_and_fetch_huawei_history(token, station_code, start_time, end_time):
+def register_and_fetch_huawei_history(token, station_code):
     """
     1. Fetches device list from Huawei API for a given station_code, filters for devTypeId 1 or 38,
        and registers them as Inversor objects (linked to Proyecto with identificador_planta == station_code).
@@ -51,15 +51,4 @@ def register_and_fetch_huawei_history(token, station_code, start_time, end_time)
     if not dev_dns or not dev_type_id:
         raise ValueError("No inverters with devTypeId 1 or 38 found for this project.")
 
-    # --- 2. Fetch history KPI for all these devices ---
-    url = "https://la5.fusionsolar.huawei.com/thirdData/getDevHistoryKpi"
-    body = {
-        "devIds": ",".join(dev_dns),
-        "devTypeId": dev_type_id,
-        "startTime": start_time,
-        "endTime": end_time
-    }
-    resp = requests.post(url, headers=headers, json=body)
-    resp.raise_for_status()
-    history_response = resp.json()
-    return inverters, history_response
+    return inverters

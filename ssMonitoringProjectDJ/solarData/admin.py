@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, MPPT, GeneracionMPPTDiaria
+from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
 
 @admin.register(Proyecto)
 class ProyectoAdmin(admin.ModelAdmin):
@@ -24,13 +24,13 @@ class GeneracionInversorDiariaAdmin(admin.ModelAdmin):
     list_filter = ('fecha_generacion_inversor_dia',)
     search_fields = ('id_proyecto__dealname',)
 
-@admin.register(MPPT)
-class MPPTAdmin(admin.ModelAdmin):
-    list_display = ('id', 'id_proyecto', 'id_inversor')
+@admin.register(Granular)
+class GranularAdmin(admin.ModelAdmin):
+    list_display = ('id', 'id_proyecto', 'id_inversor', 'serial_granular', 'tipo_granular')
     search_fields = ('id_proyecto__dealname',)
 
-@admin.register(GeneracionMPPTDiaria)
-class GeneracionMPPTDiariaAdmin(admin.ModelAdmin):
-    list_display = ('id_proyecto', 'id_inversor', 'id_mppt', 'energia_generada_mppt_dia', 'fecha_generacion_mppt_dia')
-    list_filter = ('fecha_generacion_mppt_dia',)
+@admin.register(GeneracionGranularDiaria)
+class GeneracionGranularDiariaAdmin(admin.ModelAdmin):
+    list_display = ('id_proyecto', 'id_inversor', 'id_granular', 'energia_generada_granular_dia', 'fecha_generacion_granular_dia')
+    list_filter = ('fecha_generacion_granular_dia',)
     search_fields = ('id_proyecto__dealname',)

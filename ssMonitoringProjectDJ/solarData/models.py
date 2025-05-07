@@ -19,6 +19,8 @@ class Proyecto(models.Model):
     restriccion_de_autoconsumo = models.BooleanField(default=False, verbose_name= 'tiene restricción de autoconsumo')
     identificador_planta = models.CharField(max_length=100, verbose_name= 'identificador de marca', null=True, blank=True)
     marca_inversor = models.ForeignKey(MarcasInversores, on_delete=models.CASCADE, verbose_name= 'marca de inversor', null=True, blank=True)
+    capacidad_instalada_ac = models.DecimalField(max_digits=10, decimal_places=3, verbose_name= 'capacidad instalada AC', null=True, blank=True)
+    capacidad_instalada_dc = models.DecimalField(max_digits=10, decimal_places=3, verbose_name= 'capacidad instalada DC', null=True, blank=True)
 
     def __str__(self):
         return self.dealname
@@ -35,12 +37,15 @@ class GeneracionEnergiaDiaria(models.Model):
         unique_together = ('id_proyecto', 'fecha_generacion_dia')
 
     def __str__(self):
-        return f'p{self.id_proyecto}: {self.energia_generada_dia}'
+        return f'p:{self.id_proyecto} - {self.fecha_generacion_dia} - {self.energia_generada_dia}'
 
 class Inversor(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
     identificador_inversor = models.CharField(max_length=100, verbose_name= 'serial del inversor', default="")
     huawei_devTypeId = models.CharField(max_length=5, verbose_name= 'huawei devTypeId', null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.identificador_inversor} - p:{self.id_proyecto}'
 
 class GeneracionInversorDiaria(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
@@ -52,19 +57,26 @@ class GeneracionInversorDiaria(models.Model):
         unique_together = ('id_proyecto', 'id_inversor', 'fecha_generacion_inversor_dia')
 
     def __str__(self):
-        return f'p{self.id_proyecto} - i{self.id_inversor}: {self.energia_generada_inversor_dia}'
+        return f'p:{self.id_proyecto} - i:{self.id_inversor} - {self.energia_generada_inversor_dia}'
 
-class MPPT(models.Model):
+class Granular(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
     id_inversor = models.ForeignKey(Inversor, on_delete=models.CASCADE)
-    serial_mppt = models.CharField(max_length=100, verbose_name= 'serial del mppt', default="")
+    serial_granular = models.CharField(max_length=100, verbose_name= 'serial del granular', default="")
+    tipo_granular = models.CharField(max_length=100, verbose_name= 'tipo de granular', default="")
 
-class GeneracionMPPTDiaria(models.Model):
-    id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
-    id_inversor = models.ForeignKey(Inversor, on_delete=models.CASCADE)
-    id_mppt = models.ForeignKey(MPPT, on_delete=models.CASCADE)
-    energia_generada_mppt_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía por mppt generada en el día')
-    fecha_generacion_mppt_dia = models.DateField(verbose_name= 'fecha de generación por mppt')
+    class Meta:
+        unique_together = ('id_proyecto', 'id_inversor', 'serial_granular')
 
     def __str__(self):
-        return f'p{self.id_proyecto} - m{self.id_mppt}: {self.energia_generada_mppt_dia}'
+        return f'p:{self.id_proyecto} - i:{self.id_inversor} - g:{self.serial_granular}'
+
+class GeneracionGranularDiaria(models.Model):
+    id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
+    id_inversor = models.ForeignKey(Inversor, on_delete=models.CASCADE)
+    id_granular = models.ForeignKey(Granular, on_delete=models.CASCADE, default="")
+    energia_generada_granular_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía por mppt generada en el día')
+    fecha_generacion_granular_dia = models.DateField(verbose_name= 'fecha de generación por mppt')
+
+    def __str__(self):
+        return f'p:{self.id_proyecto} - i:{self.id_inversor} - g:{self.id_granular} - {self.energia_generada_granular_dia}'

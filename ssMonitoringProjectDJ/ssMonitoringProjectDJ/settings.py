@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "solarData",
     "solarDataFetch",
     "solarDataStore",
+    "solarDataNewSystem",
 ]
 
 MIDDLEWARE = [

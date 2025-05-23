@@ -37,9 +37,12 @@ class Command(BaseCommand):
                             raise CommandError(f'Error fetching inverter data (dev_type_id {dev_type_id}, batch {batch_number}): {e}')
                 else:
                     raise CommandError(f'Failed after retrying batch {batch_number} for dev_type_id {dev_type_id} due to repeated session expiration.')
-
+                self.stdout.write(self.style.NOTICE(f'{inverter_data}'))
                 # Insert always happens once per batch
-                insert_huawei_generacion_inversor_dia(inverter_data)
+                try:
+                    insert_huawei_generacion_inversor_dia(inverter_data)
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'Error inserting inverter data (dev_type_id {dev_type_id}, batch {batch_number}): {e}'))
                 self.stdout.write(self.style.SUCCESS(
                     f'dev_type_id {dev_type_id} - Batch {batch_number}: {len(inverter_data)} inverters processed.'
                 ))

@@ -112,7 +112,7 @@ class HuaweiFetcher:
                 result.append({
                     'stationCode': station_code,
                     'collectTime': collect_time,
-                    'PVYield': pvyield
+                    'PVYield': 0 if pvyield in (None, "None") else pvyield
                 })
         return result
     
@@ -187,7 +187,7 @@ class HuaweiFetcher:
             result.append({
                 'identificador_inversor': our_id,
                 'collectTime': collect_time,
-                'product_power': product_power,
+                'product_power': 0 if product_power in (None, "None") else product_power,
             })
         return result
 

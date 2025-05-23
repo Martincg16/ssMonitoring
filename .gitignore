@@ -21,7 +21,7 @@ var/
 *.egg
 
 # Virtual Environment
-venv/
+my_venv_1/
 ENV/
 
 # IDE
@@ -31,7 +31,7 @@ ENV/
 *.swo
 
 # Environment variables
-.env
+#.env
 
 # Logs
 *.log

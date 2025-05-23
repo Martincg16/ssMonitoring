@@ -77,14 +77,16 @@ WSGI_APPLICATION = 'ssMonitoringProjectDJ.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+import os
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'password',
-        'HOST': 'ssmonitoring1.cfc4mu6gaw2m.us-east-1.rds.amazonaws.com',
-        'PORT': '5432',
+        'NAME': os.environ.get('POSTGRES_DB', 'ssmonitoring'),
+        'USER': os.environ.get('POSTGRES_USER', 'ssuser'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'sspassword'),
+        'HOST': os.environ.get('DB_HOST', 'db'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 

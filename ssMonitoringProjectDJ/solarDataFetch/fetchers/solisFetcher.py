@@ -5,8 +5,6 @@ import base64
 import json
 import hmac
 
-from solarData.models import Proyecto, Inversor
-
 class SolisFetcher:
     url = "https://www.soliscloud.com:13333"
     key_id="1300386381677289904"
@@ -96,11 +94,87 @@ class SolisFetcher:
         body = {"pageNo":f"{batch_number}", "pageSize": 100, "time": collect_time}
         headers = self.build_solis_headers("POST", endpoint, body)
 
-        response = requests.post(self.url + endpoint, headers=headers, json=body)
-        response.raise_for_status()
         try:
+            response = requests.post(self.url + endpoint, headers=headers, json=body)
+            response.raise_for_status()  # Raises HTTPError for 4XX/5XX responses
             parsed = response.json()
-            print(json.dumps(parsed, indent=2, ensure_ascii=False))
+            
+            # Check if the API returned an error in the JSON body
+            if not parsed.get("success", False):
+                error_msg = parsed.get("msg", "Unknown error from Solis API")
+                error_code = parsed.get("code", "N/A")
+                raise RuntimeError(f"Solis API error (code {error_code}): {error_msg}")
+                
+            # Transform to required output structure
+            result_list = [
+                {
+                    "id": rec["id"],
+                    "collectTime": rec["dateStr"],
+                    "PVYield": rec["energy"]
+                }
+                for rec in parsed.get("data", {}).get("records", [])
+            ]
+            return result_list
+            
+        except requests.exceptions.HTTPError as http_err:
+            raise RuntimeError(f"HTTP error occurred: {http_err}") from http_err
+        except json.JSONDecodeError as json_err:
+            raise RuntimeError(f"Failed to parse JSON response: {json_err}") from json_err
         except Exception as e:
-            print("Response is not valid JSON:", e)
-        return response
+            raise RuntimeError(f"Unexpected error: {e}") from e
+
+    def fetch_solis_generacion_inversor_dia(self, batch_number=1):
+        """
+        Fetch inverter data from Solis API.
+        
+        Args:
+            batch_number (int): Page number for pagination (starts at 1).
+            
+        Returns:
+            list: List of dictionaries containing inverter data with keys:
+                - 'identificador_inversor' (str): The inverter ID.
+                - 'collectTime' (int): Timestamp in milliseconds.
+                - 'PVYield' (float): Power output of the inverter.
+                
+        Raises:
+            RuntimeError: If there's an HTTP error, JSON decode error, or API returns success=False.
+        """
+        endpoint = "/v1/api/inverterDetailList"
+        body = {
+            "pageNo": str(batch_number),
+            "pageSize": 100
+        }
+        headers = self.build_solis_headers("POST", endpoint, body)
+
+        try:
+            response = requests.post(self.url + endpoint, headers=headers, json=body)
+            response.raise_for_status()
+            parsed = response.json()
+            
+            if not parsed.get("success", False):
+                error_msg = parsed.get("msg", "Unknown error from Solis API")
+                error_code = parsed.get("code", "N/A")
+                raise RuntimeError(f"Solis API error (code {error_code}): {error_msg}")
+            
+            # Transform to match Huawei's output format
+            result_list = []
+            for rec in parsed.get("data", {}).get("records", []):
+                # Extract inverter ID and power (adjust field names based on actual API response)
+                inverter_id = rec.get("inverterId") or rec.get("id")
+                power = rec.get("power") or rec.get("pac", 0)  # Use actual power field from API
+                
+                if inverter_id:
+                    result_list.append({
+                        'identificador_inversor': str(inverter_id),
+                        'collectTime': int(rec.get("collectTime", 0)),
+                        'PVYield': float(power) if power not in (None, "None") else 0.0
+                    })
+            
+            return result_list
+            
+        except requests.exceptions.HTTPError as http_err:
+            raise RuntimeError(f"HTTP error occurred: {http_err}") from http_err
+        except json.JSONDecodeError as json_err:
+            raise RuntimeError(f"Failed to parse JSON response: {json_err}") from json_err
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error: {e}") from e

@@ -2,6 +2,7 @@ from django.db import models
 
 class MarcasInversores(models.Model):
     marca = models.CharField(max_length=100, verbose_name= 'marca de inversor', null=True, blank=True)
+    informacion_granular = models.BooleanField(default=True, verbose_name= 'tiene información de granular')
 
     def __str__(self):
         return self.marca

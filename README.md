@@ -51,3 +51,8 @@ It must return a list of dictionaries resembling the following structure (not ma
 [{'identificador_inversor': 'NE=34096564', 'collectTime': 1747890000000, 'PVYield': 37.23}, {'identificador_inversor': 'NE=34096580', 'collectTime': 1747890000000, 'PVYield': 34.5}]
 
 ## solarDataStore how-to 
+
+# Programming
+## Stack
+Django + Djangorestframework
+Terraform

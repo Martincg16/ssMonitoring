@@ -10,23 +10,26 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env file from the project root (one level up from Django project)
+load_dotenv(BASE_DIR.parent / '.env')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-3g1p-1hqh--r6qna3a#_@hsu!ghp(u=^0jfpxtn75ce9g&8d8e'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-3g1p-1hqh--r6qna3a#_@hsu!ghp(u=^0jfpxtn75ce9g&8d8e')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = []
 
@@ -80,15 +83,13 @@ WSGI_APPLICATION = 'ssMonitoringProjectDJ.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-import os
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB', 'ssmonitoring'),
-        'USER': os.environ.get('POSTGRES_USER', 'ssuser'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'sspassword'),
-        'HOST': os.environ.get('DB_HOST', 'db'),
+        'NAME': os.environ.get('DB_NAME', 'ssmonitoring'),
+        'USER': os.environ.get('DB_USER', 'ssuser'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'sspassword'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }

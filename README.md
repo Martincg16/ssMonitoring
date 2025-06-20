@@ -1,6 +1,6 @@
 # SS Monitoring
 
-_____________________
+========================================================================================
 TO-DO
 
 - Revisión de huawei al buscar los proyectos para traer los invesores y granular
@@ -10,7 +10,7 @@ DÓNDE QUEDÉ
 - Creación (más no revisón) de solisCrud def insert_solis_generacion_sistema_dia(data):
 
 
-_____________________
+========================================================================================
 
 A monitoring system for tracking and managing server status.
 
@@ -29,9 +29,24 @@ from solarDataNewSystem.register.huaweiRegister import register_and_fetch_huawei
 from solarDataFetch.fetchers.huaweiFetcher import HuaweiFetcher
 fetcher = HuaweiFetcher()
 token = fetcher.login()
-station_code = 'NE=35123000'  # Replace with your actual code
+station_code = 'NE=35527492'  # Replace with your actual code
 inverters = register_and_fetch_huawei_history(token, station_code)
 4. This creates the inverters. The MPPT will be created on their own by the fetcher + crud
+
+### Solis
+1. vía python manage.py:
+    # Import the register class
+    from solarDataNewSystem.register.solisRegister import SolisRegister
+
+    # Create an instance
+    register = SolisRegister()
+
+    # Run the complete registration process
+    result = register.solis_register_new_project()
+
+    # Show final results
+    print("Final results:", result)
+2. Via pgAdmin make sure to add extra information (potencia dc, ciudad, departamento, energías)
 
 ### Solis
 1. Look for any new project via solarDataFetch/solisApi.list_plants_api()

@@ -18,6 +18,22 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# Data source for latest Amazon Linux 2023 AMI
+data "aws_ami" "amazon_linux_2023" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 # VPC
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
@@ -172,21 +188,21 @@ resource "aws_security_group" "rds" {
 }
 
 # Key Pair (commented out for now - uncomment when you have SSH keys)
-# resource "aws_key_pair" "main" {
-#   key_name   = "ss-monitoring-key"  
-#   public_key = file("~/.ssh/id_rsa.pub") # Change this path to your public key
-# 
-#   tags = {
-#     Name        = "ss-monitoring-key"
-#     Environment = "dev"
-#   }
-# }
+resource "aws_key_pair" "main" {
+  key_name   = "ss-monitoring-key"  
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDJRr8uzoidJLuoj2WaR9KdniUlpohAO3EYorWC9PuZIyNRjCHx9WZcAPZb86d6VBfxmB6PDZqIps99bB+6EmpQfg8lIEaY1tIT9S2Weksn7a49zqS39KNwtfrAGQyw37IHACoTQ+lv184NVcbs7mkvFouORHTO+g9bmb1lgM+bs155m2unBlU1EJDAtFsVJKlyw/ehscwyr4aHq1p4ajz1Z2lVtqv5m0B3Syz7j4KOTOERxtgduecrmF7nbeGuo39bH1eNyQferO/YLDTIDPybIe9QnGyvdlUcnjZM2pxB3bRJG7xynhoY9UEhGwrSnCykhHmxBl6miJZWyEM0W+0NcmMDtCnq54k60DXiLA3GO6DWwHJCuOtoL+6ZjwihTJMdur8asscB443e3WoumRZ0oGrFdEbP0Or3XwAutxTQ8gyTZ4Mjg4QEUR9vxz3A42v/apHDua0Mk9fXZoGU6XT/FS2bZGoZe74DRDgDM8Kpxc56U4I2lUTQ6rehv1EWmXu9qsSeULJ+ne0uE6ccWEa1H/M4bCNB4ChtHXbLZPJjCrLI9/eMO7cuEt4zjt90wOu7MMTNRIxFDuI+kdxBaDCsSw+OR2u0mcQCBzjK22qT6twDE8QPyOBrsXq1x9eGlcSNAHm3dzXhQwNtNF01879iq/4UmNPA94XGuOY5FZgGWQ== martin@rocasol.com.co"
+
+  tags = {
+    Name        = "ss-monitoring-key"
+    Environment = "dev"
+  }
+}
 
 # EC2 Instance (Free Tier)
 resource "aws_instance" "app" {
-  ami                    = "ami-0c02fb55956c7d316" # Amazon Linux 2023 in us-east-1 - update if needed for your region
+  ami                    = data.aws_ami.amazon_linux_2023.id # Latest Amazon Linux 2023 AMI
   instance_type          = "t2.micro" # Free tier eligible - 750 hours/month
-  # key_name               = aws_key_pair.main.key_name # Commented out - no SSH access for now
+  key_name               = aws_key_pair.main.key_name # SSH access enabled
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.ec2.id]
 

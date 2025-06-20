@@ -1,0 +1,17 @@
+[Unit]
+Description=Solar Monitoring Django App
+After=network.target
+
+[Service]
+Type=exec
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/opt/solar-monitoring/ssMonitoringProjectDJ
+Environment=PATH=/opt/solar-monitoring/venv/bin
+EnvironmentFile=/opt/solar-monitoring/.env
+ExecStart=/opt/solar-monitoring/venv/bin/python manage.py runserver 0.0.0.0:8000
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target 

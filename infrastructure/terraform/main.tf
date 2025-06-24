@@ -198,24 +198,179 @@ resource "aws_key_pair" "main" {
   }
 }
 
+# IAM Role for EC2 CloudWatch permissions
+resource "aws_iam_role" "ec2_cloudwatch_role" {
+  name = "ss-monitoring-ec2-cloudwatch-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "ss-monitoring-ec2-cloudwatch-role"
+    Environment = "dev"
+  }
+}
+
+# IAM policy for CloudWatch logs
+resource "aws_iam_role_policy" "ec2_cloudwatch_policy" {
+  name = "ss-monitoring-ec2-cloudwatch-policy"
+  role = aws_iam_role.ec2_cloudwatch_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams",
+          "logs:DescribeLogGroups",
+          "ssm:GetParameter",
+          "ssm:PutParameter",
+          "ssm:DescribeParameters",
+          "ec2:DescribeTags"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Instance profile for EC2
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "ss-monitoring-ec2-profile"
+  role = aws_iam_role.ec2_cloudwatch_role.name
+
+  tags = {
+    Name        = "ss-monitoring-ec2-profile"
+    Environment = "dev"
+  }
+}
+
+# CloudWatch Log Group for Django application logs
+resource "aws_cloudwatch_log_group" "django_logs" {
+  name              = "/aws/solar-monitoring/django"
+  retention_in_days = 7
+
+  tags = {
+    Name        = "ss-monitoring-django-logs"
+    Environment = "dev"
+  }
+}
+
 # EC2 Instance (Free Tier)
 resource "aws_instance" "app" {
-  ami                    = data.aws_ami.amazon_linux_2023.id # Latest Amazon Linux 2023 AMI
-  instance_type          = "t2.micro" # Free tier eligible - 750 hours/month
-  key_name               = aws_key_pair.main.key_name # SSH access enabled
-  subnet_id              = aws_subnet.public.id
+  ami                    = data.aws_ami.amazon_linux_2023.id
+  instance_type          = "t2.micro"
+  key_name              = aws_key_pair.main.key_name
+  subnet_id             = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.ec2.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
-  # User data script to install basic dependencies
   user_data = <<-EOF
-    #!/bin/bash
-    yum update -y
-    yum install -y python3 python3-pip git
-    
-    # Create app directory
-    mkdir -p /opt/solar-monitoring
-    chown ec2-user:ec2-user /opt/solar-monitoring
-  EOF
+#!/bin/bash
+# Enable logging
+exec > >(tee /var/log/user-data.log) 2>&1
+echo "Starting user-data script execution at $(date)"
+
+# Update system and wait for completion
+echo "Updating system packages..."
+dnf update -y
+while pgrep -f dnf > /dev/null; do
+    echo "Waiting for package manager to finish..."
+    sleep 5
+done
+
+# Install CloudWatch Agent first
+echo "Installing CloudWatch Agent..."
+dnf install -y amazon-cloudwatch-agent
+if [ $? -ne 0 ]; then
+    echo "Failed to install CloudWatch Agent. Retrying..."
+    sleep 10
+    dnf install -y amazon-cloudwatch-agent
+fi
+
+# Create app directory structure
+echo "Creating application directories..."
+mkdir -p /opt/solar-monitoring/logs
+chown -R ec2-user:ec2-user /opt/solar-monitoring
+chmod 755 /opt/solar-monitoring/logs
+
+# Create initial log file with proper permissions
+touch /opt/solar-monitoring/logs/django.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/django.log
+chmod 664 /opt/solar-monitoring/logs/django.log
+
+# Create CloudWatch agent config
+echo "Configuring CloudWatch Agent..."
+mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'EOL'
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "run_as_user": "root"
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/opt/solar-monitoring/logs/django.log",
+            "log_group_name": "/aws/solar-monitoring/django",
+            "log_stream_name": "django-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/user-data.log",
+            "log_group_name": "/aws/solar-monitoring/django",
+            "log_stream_name": "user-data-{instance_id}",
+            "timezone": "UTC"
+          }
+        ]
+      }
+    }
+  }
+}
+EOL
+
+# Start CloudWatch agent
+echo "Starting CloudWatch Agent..."
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config \
+  -m ec2 \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+  -s
+
+# Enable and start CloudWatch agent
+systemctl enable amazon-cloudwatch-agent
+systemctl start amazon-cloudwatch-agent
+
+# Install other required packages
+echo "Installing Python and other dependencies..."
+dnf install -y python3.11 python3.11-pip git
+
+# Create symlinks for easier access
+ln -sf /usr/bin/python3.11 /usr/local/bin/python3
+ln -sf /usr/bin/pip3.11 /usr/local/bin/pip3
+
+# Final status check
+systemctl status amazon-cloudwatch-agent --no-pager
+
+echo "User-data script completed at $(date)"
+EOF
 
   tags = {
     Name        = "ss-monitoring-app"

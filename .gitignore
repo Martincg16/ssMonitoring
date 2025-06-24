@@ -22,6 +22,7 @@ var/
 
 # Virtual Environment
 my_venv_1/
+venv1/
 ENV/
 
 # IDE
@@ -42,6 +43,7 @@ infrastructure/terraform/terraform.tfstate.backup
 
 # Logs
 *.log
+logs/
 
 # Local development settings
 local_settings.py

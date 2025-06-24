@@ -136,17 +136,6 @@ Your app will be available at:
 http://YOUR_EC2_IP:8000
 ```
 
-## Step 11: Set Up Cron Jobs for Data Collection
-
-```bash
-# Edit crontab
-crontab -e
-
-# Add these lines for daily data collection (runs at 6 AM and 7 AM)
-0 6 * * * cd /opt/solar-monitoring/ssMonitoringProjectDJ && /opt/solar-monitoring/venv/bin/python manage.py solis_system_gen_yesterday
-0 7 * * * cd /opt/solar-monitoring/ssMonitoringProjectDJ && /opt/solar-monitoring/venv/bin/python manage.py solis_inverter_gen_yesterday
-```
-
 ## 🔧 Management Commands
 
 ```bash

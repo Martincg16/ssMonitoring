@@ -1,6 +1,11 @@
 import requests
+import logging
+from datetime import datetime
 from solarData.models import Proyecto, Inversor
 from collections import defaultdict
+
+# Simple logger that will automatically go to CloudWatch via agent
+logger = logging.getLogger('huawei_fetcher')
 
 class HuaweiFetcher:
     BASE_URL = "https://la5.fusionsolar.huawei.com/thirdData/"
@@ -11,12 +16,17 @@ class HuaweiFetcher:
 
     def login(self):
         login_url = self.BASE_URL + "login"
+        logger.info(f"Starting Huawei API login attempt to {login_url}")
+        
         try:
             response = requests.post(login_url, json=self.LOGIN_BODY)
             response.raise_for_status()  # Raises HTTPError for bad responses
+            
             xsrf_token = response.headers.get("xsrf-token")
             if not xsrf_token:
                 raise ValueError("xsrf-token not found in response headers")
+            
+            logger.info(f"Huawei API login successful - token received")
             return xsrf_token
         except requests.exceptions.HTTPError as http_err:
             raise RuntimeError(f"HTTP error occurred during Huawei login: {http_err}") from http_err
@@ -53,6 +63,7 @@ class HuaweiFetcher:
         Returns:
             dict: The parsed JSON response from the Huawei API.
         """
+        logger.info(f"Fetching Huawei generation data for batch {batch_number} at {collect_time}")
         if batch_number < 1:
             raise ValueError("batch_number must be >= 1")
         if collect_time is None:
@@ -114,6 +125,7 @@ class HuaweiFetcher:
                     'collectTime': collect_time,
                     'PVYield': 0 if pvyield in (None, "None") else pvyield
                 })
+        logger.info(f"Huawei generation data fetched for batch {batch_number} at {collect_time}")
         return result
     
     def fetch_huawei_generacion_inversor_dia(self, dev_type_id, batch_number=1, collect_time=None, token=None):

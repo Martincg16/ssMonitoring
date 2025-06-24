@@ -143,3 +143,74 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ]
 }
+
+# Django Logging Configuration for CloudWatch
+# This sets up logging that writes to files, which CloudWatch Agent automatically picks up
+LOGGING = {
+    # Always use version 1 for Django logging configuration
+    'version': 1,
+    
+    # Keep Django's existing loggers (don't disable them)
+    'disable_existing_loggers': False,
+    
+    # FORMATTERS: Define how log messages should look
+    'formatters': {
+        'simple': {
+            # Format: "2025-01-15 10:30:15 INFO huawei_fetcher Starting login attempt"
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',  # Use new-style string formatting
+        },
+    },
+    
+    # HANDLERS: Define where logs should go
+    'handlers': {
+        # FILE HANDLER: Writes logs to a file (CloudWatch Agent reads this file)
+        'file': {
+            'level': 'INFO',  # Only log INFO level and above
+            'class': 'logging.FileHandler',  # Write to file
+            'filename': BASE_DIR.parent / 'logs' / 'django.log',  # Windows-compatible path
+            'formatter': 'simple',  # Use the 'simple' formatter defined above
+        },
+        
+        # CONSOLE HANDLER: Prints logs to terminal/console (for debugging)
+        'console': {
+            'level': 'INFO',  # Only log INFO level and above
+            'class': 'logging.StreamHandler',  # Print to stdout/stderr
+            'formatter': 'simple',  # Use the 'simple' formatter defined above
+        },
+    },
+    
+    # LOGGERS: Define which code can log and how
+    'loggers': {
+        # Logger for Huawei fetcher code
+        'huawei_fetcher': {
+            'handlers': ['file', 'console'],  # Send logs to both file and console
+            'level': 'INFO',  # Minimum level to log
+            'propagate': False,  # Don't pass logs to parent loggers (prevents duplicates)
+        },
+        
+        # Add more loggers here as needed:
+        # 'solis_fetcher': {
+        #     'handlers': ['file', 'console'],
+        #     'level': 'INFO',
+        #     'propagate': False,
+        # },
+    },
+}
+
+# LOGGING LEVELS (from lowest to highest priority):
+# DEBUG    - Detailed diagnostic info (usually only when diagnosing problems)
+# INFO     - General information about program execution
+# WARNING  - Something unexpected happened, but program still works
+# ERROR    - A serious problem occurred, some function failed
+# CRITICAL - A very serious error occurred, program might stop
+
+# Usage in your code:
+# import logging
+# logger = logging.getLogger('huawei_fetcher')
+# logger.debug("Detailed debug info")      # Won't show (below INFO level)
+# logger.info("General information")       # Will show ✅
+# logger.warning("Something unexpected")   # Will show ✅
+# logger.error("An error occurred")        # Will show ✅
+# logger.critical("Critical failure")      # Will show ✅
+

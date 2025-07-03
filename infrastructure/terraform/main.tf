@@ -408,12 +408,65 @@ resource "aws_db_subnet_group" "main" {
   }
 }
 
+# RDS Parameter Group for audit logging
+resource "aws_db_parameter_group" "postgres" {
+  family = "postgres16"
+  name   = "ss-monitoring-postgres16-params"
+
+  parameter {
+    name  = "log_statement"
+    value = "mod"  # Log all DML (INSERT, UPDATE, DELETE) and DDL (CREATE, ALTER, etc.)
+    apply_method = "immediate"
+  }
+
+  parameter {
+    name  = "log_filename"
+    value = "postgresql-%Y-%m-%d_%H.log"  # Daily log files
+    apply_method = "immediate"
+  }
+
+  parameter {
+    name  = "log_connections"
+    value = "1"  # Log all connections
+    apply_method = "immediate"
+  }
+
+  parameter {
+    name  = "log_disconnections"
+    value = "1"  # Log all disconnections
+    apply_method = "immediate"
+  }
+
+  parameter {
+    name  = "log_rotation_age"
+    value = "1440"  # Rotate logs daily (in minutes)
+    apply_method = "immediate"
+  }
+
+  parameter {
+    name  = "log_rotation_size"
+    value = "10240"  # Also rotate if size exceeds 10MB
+    apply_method = "immediate"
+  }
+
+  parameter {
+    name  = "log_destination"
+    value = "csvlog"  # Use CSV format for better parsing
+    apply_method = "immediate"
+  }
+
+  tags = {
+    Name        = "ss-monitoring-postgres-params"
+    Environment = "dev"
+  }
+}
+
 # RDS Instance (Free Tier) - Publicly accessible for pgAdmin
 resource "aws_db_instance" "postgres" {
   identifier                = "ss-monitoring-db"
   engine                    = "postgres"
   engine_version            = "16.8"
-  instance_class            = "db.t3.micro" # Free tier eligible - updated from deprecated db.t2.micro
+  instance_class            = "db.t3.micro" # Free tier eligible
   allocated_storage         = 20 # Free tier: 20GB
   storage_type              = "gp2"
   storage_encrypted         = false # Encryption not available in free tier
@@ -428,13 +481,146 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = aws_db_subnet_group.main.name
 
-  skip_final_snapshot = true
-  deletion_protection = false
+  skip_final_snapshot = false # Changed to false to ensure a final snapshot is taken
+  final_snapshot_identifier = "ss-monitoring-final-snapshot"
+  deletion_protection = true # Enable deletion protection
 
-  backup_retention_period = 0 # Disable backups for free tier
+  backup_retention_period = 1 # Minimum backup retention while staying in free tier
+  backup_window = "03:00-04:00" # Early morning UTC backup window
   
+  # Enhanced monitoring and insights
+  monitoring_interval = 60  # Free tier allows 60-second intervals
+  monitoring_role_arn = aws_iam_role.rds_monitoring_role.arn
+  performance_insights_enabled = true  # Free tier includes 7 days retention
+  performance_insights_retention_period = 7  # Days, free tier maximum
+
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]  # Export PostgreSQL logs to CloudWatch
+
+  parameter_group_name = aws_db_parameter_group.postgres.name
+
   tags = {
     Name        = "ss-monitoring-db"
+    Environment = "dev"
+  }
+
+  # Prevent terraform from destroying the database
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# IAM role for RDS enhanced monitoring
+resource "aws_iam_role" "rds_monitoring_role" {
+  name = "ss-monitoring-rds-monitoring-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "monitoring.rds.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "ss-monitoring-rds-monitoring-role"
+    Environment = "dev"
+  }
+}
+
+# Attach the AWS managed policy for RDS enhanced monitoring
+resource "aws_iam_role_policy_attachment" "rds_monitoring_policy" {
+  role       = aws_iam_role.rds_monitoring_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
+# CloudWatch Log Group for RDS logs with daily streams
+resource "aws_cloudwatch_log_group" "rds_logs" {
+  name              = "/aws/rds/instance/ss-monitoring-db/postgresql"
+  retention_in_days = 7  # Free tier friendly retention
+
+  tags = {
+    Name        = "ss-monitoring-rds-logs"
+    Environment = "dev"
+    LogRotation = "daily"
+  }
+}
+
+# Metric filter for CRUD operations
+resource "aws_cloudwatch_log_metric_filter" "crud_operations" {
+  name           = "crud-operations"
+  pattern        = "[timestamp=*] INSERT|UPDATE|DELETE|CREATE|ALTER|DROP"
+  log_group_name = aws_cloudwatch_log_group.rds_logs.name
+
+  metric_transformation {
+    name      = "CRUDOperationsCount"
+    namespace = "CustomMetrics/Database"
+    value     = "1"
+  }
+}
+
+# Metric filter for connections/disconnections
+resource "aws_cloudwatch_log_metric_filter" "connection_events" {
+  name           = "connection-events"
+  pattern        = "[timestamp=*] connection received|disconnection complete"
+  log_group_name = aws_cloudwatch_log_group.rds_logs.name
+
+  metric_transformation {
+    name      = "ConnectionEventsCount"
+    namespace = "CustomMetrics/Database"
+    value     = "1"
+  }
+}
+
+# CloudWatch Metric Alarms for database monitoring
+resource "aws_cloudwatch_metric_alarm" "database_connections" {
+  alarm_name          = "ss-monitoring-db-connections-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name        = "DatabaseConnections"
+  namespace          = "AWS/RDS"
+  period             = "300"  # 5 minutes
+  statistic          = "Average"
+  threshold          = "80"  # 80% of max connections
+  alarm_description  = "This metric monitors database connections"
+  
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.id
+  }
+
+  alarm_actions = []  # You can add SNS topic ARNs here for notifications
+  ok_actions    = []  # You can add SNS topic ARNs here for notifications
+
+  tags = {
+    Name        = "ss-monitoring-db-connections-alarm"
+    Environment = "dev"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "database_storage" {
+  alarm_name          = "ss-monitoring-db-storage-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name        = "FreeStorageSpace"
+  namespace          = "AWS/RDS"
+  period             = "300"  # 5 minutes
+  statistic          = "Average"
+  threshold          = "2147483648"  # 2GB free space (in bytes)
+  alarm_description  = "This metric monitors free storage space"
+  
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.id
+  }
+
+  alarm_actions = []  # You can add SNS topic ARNs here for notifications
+  ok_actions    = []  # You can add SNS topic ARNs here for notifications
+
+  tags = {
+    Name        = "ss-monitoring-db-storage-alarm"
     Environment = "dev"
   }
 } 

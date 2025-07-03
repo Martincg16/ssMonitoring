@@ -48,8 +48,21 @@ ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "cd /opt/
 # Install dependencies
 ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "cd /opt/solar-monitoring && source venv/bin/activate && cd ssMonitoringProjectDJ && python -m pip install --upgrade pip && pip install -r requirements.txt"
 
-# Run migrations
-ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "cd /opt/solar-monitoring && source venv/bin/activate && cd ssMonitoringProjectDJ && python manage.py migrate"
+# Check database before migrations
+Write-Host "Checking database before migrations..." -ForegroundColor Yellow
+$CHECK_DB = ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "cd /opt/solar-monitoring/ssMonitoringProjectDJ && source ../venv/bin/activate && python manage.py shell -c 'from solarData.models import Proyecto; print(Proyecto.objects.count())'"
+
+if ($CHECK_DB -gt 0) {
+    Write-Host "WARNING: Database contains $CHECK_DB projects!" -ForegroundColor Red
+    $CONTINUE = Read-Host "Do you want to continue with the deployment? (yes/no)"
+    if ($CONTINUE -ne "yes") {
+        Write-Host "Deployment aborted." -ForegroundColor Red
+        exit 1
+    }
+}
+
+# Run migrations with --fake-initial to prevent data loss
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "cd /opt/solar-monitoring && source venv/bin/activate && cd ssMonitoringProjectDJ && python manage.py migrate --fake-initial"
 
 # Setup systemd service
 ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "cd /opt/solar-monitoring && sudo cp infrastructure/systemd/solar-monitoring.service /etc/systemd/system/ && sudo chmod 644 /etc/systemd/system/solar-monitoring.service && sudo systemctl daemon-reload"

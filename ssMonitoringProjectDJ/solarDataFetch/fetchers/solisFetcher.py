@@ -4,6 +4,9 @@ import hashlib
 import base64
 import json
 import hmac
+from solarData.models import Proyecto
+
+# Set up logger
 
 class SolisFetcher:
     url = "https://www.soliscloud.com:13333"
@@ -85,18 +88,17 @@ class SolisFetcher:
 
     def fetch_solis_generacion_sistema_dia(self, batch_number=1, collect_time=None):
         """
-        Fetch daily energy data for all registered Solis plants (structure only).
+        Fetch daily energy data for Solis plants.
         Uses /v1/api/stationDayEnergyList endpoint.
-        For now, only prepares and prints the request details.
+        Returns data with PVYield=0 for any system with no data.
         """
         endpoint = "/v1/api/stationDayEnergyList"
-        # Placeholder body; update as needed for real request
         body = {"pageNo":f"{batch_number}", "pageSize": 100, "time": collect_time}
         headers = self.build_solis_headers("POST", endpoint, body)
 
         try:
             response = requests.post(self.url + endpoint, headers=headers, json=body)
-            response.raise_for_status()  # Raises HTTPError for 4XX/5XX responses
+            response.raise_for_status()
             parsed = response.json()
             
             # Check if the API returned an error in the JSON body
@@ -105,12 +107,12 @@ class SolisFetcher:
                 error_code = parsed.get("code", "N/A")
                 raise RuntimeError(f"Solis API error (code {error_code}): {error_msg}")
                 
-            # Transform to required output structure
+            # Transform to required output structure, ensuring PVYield is 0 when no data
             result_list = [
                 {
                     "id": rec["id"],
                     "collectTime": rec["dateStr"],
-                    "PVYield": rec["energy"]
+                    "PVYield": rec["energy"] if rec.get("energy") is not None else 0
                 }
                 for rec in parsed.get("data", {}).get("records", [])
             ]
@@ -123,80 +125,18 @@ class SolisFetcher:
         except Exception as e:
             raise RuntimeError(f"Unexpected error: {e}") from e
 
-    def fetch_solis_generacion_inversor_dia_data(self, batch_number=1):
-        """
-        Fetch inverter data from Solis API.
-        
-        Args:
-            batch_number (int): Page number for pagination (starts at 1).
-            
-        Returns:
-            list: List of dictionaries containing inverter data with keys:
-                - 'identificador_inversor' (str): The inverter ID.
-                - 'collectTime' (int): Timestamp in milliseconds.
-                - 'PVYield' (float): Power output of the inverter.
-                
-        Raises:
-            RuntimeError: If there's an HTTP error, JSON decode error, or API returns success=False.
-        """
-        endpoint = "/v1/api/inverterDetailList"
-        body = {
-            "pageNo": str(batch_number),
-            "pageSize": 100
-        }
-        headers = self.build_solis_headers("POST", endpoint, body)
-
-        try:
-            response = requests.post(self.url + endpoint, headers=headers, json=body)
-            response.raise_for_status()
-            parsed = response.json()
-            
-            # 🔍 PRINT RAW RESPONSE - NICE AND ORGANIZED
-            print("=" * 80)
-            print("🌟 SOLIS INVERTER API RAW RESPONSE:")
-            print("=" * 80)
-            print(json.dumps(parsed, indent=4, ensure_ascii=False))
-            print("=" * 80)
-            
-            if not parsed.get("success", False):
-                error_msg = parsed.get("msg", "Unknown error from Solis API")
-                error_code = parsed.get("code", "N/A")
-                raise RuntimeError(f"Solis API error (code {error_code}): {error_msg}")
-            
-            # Transform to match Huawei's output format
-            result_list = []
-            for rec in parsed.get("data", {}).get("records", []):
-                # Extract inverter ID and power (adjust field names based on actual API response)
-                inverter_id = rec.get("inverterId") or rec.get("id")
-                power = rec.get("power") or rec.get("pac", 0)  # Use actual power field from API
-                
-                if inverter_id:
-                    result_list.append({
-                        'identificador_inversor': str(inverter_id),
-                        'collectTime': int(rec.get("collectTime", 0)),
-                        'PVYield': float(power) if power not in (None, "None") else 0.0
-                    })
-            
-            return result_list
-            
-        except requests.exceptions.HTTPError as http_err:
-            raise RuntimeError(f"HTTP error occurred: {http_err}") from http_err
-        except json.JSONDecodeError as json_err:
-            raise RuntimeError(f"Failed to parse JSON response: {json_err}") from json_err
-        except Exception as e:
-            raise RuntimeError(f"Unexpected error: {e}") from e
-        
     def fetch_solis_generacion_un_inversor_dia(self, inverter_id, collect_time):
         """
         Fetch inverter data from Solis API.
         
         Args:
-            batch_number (int): Page number for pagination (starts at 1).
+            inverter_id (str): The ID of the inverter to fetch data for.
+            collect_time (str): The date to collect data for in YYYY-MM-DD format.
             
         Returns:
-            list: List of dictionaries containing inverter data with keys:
+            dict: Dictionary containing inverter data with keys:
                 - 'identificador_inversor' (str): The inverter ID.
-                - 'collectTime' (int): Timestamp in milliseconds.
+                - 'collectTime' (str): Date in DD-MM-YYYY format.
                 - 'PVYield' (float): Power output of the inverter.
                 
         Raises:
@@ -219,15 +159,19 @@ class SolisFetcher:
             # Extract last eToday value and format output
             data_array = parsed.get("data", [])
             if not data_array:
-                raise RuntimeError("No data found in API response")
+                # Return 0 production if no data found
+                return {
+                    'identificador_inversor': f'{inverter_id}',
+                    'collectTime': datetime.strptime(collect_time, "%Y-%m-%d").strftime("%d-%m-%Y"),
+                    'PVYield': 0.0
+                }
             
             # Get the last entry (latest time)
             last_entry = data_array[-1]
-            etoday_value = last_entry.get("eToday", 0)
+            etoday_value = last_entry.get("eToday", 0)  # Default to 0 if no eToday value
             
             # Extract date from the JSON response (timeStr format: "2025-06-18 18:35:41")
             time_str = last_entry.get("timeStr", "")
-            from datetime import datetime
             date_obj = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
             formatted_date = date_obj.strftime("%d-%m-%Y")
             
@@ -235,7 +179,7 @@ class SolisFetcher:
             result = {
                 'identificador_inversor': f'{inverter_id}',
                 'collectTime': formatted_date,
-                'PVYield': float(etoday_value)
+                'PVYield': float(etoday_value) if etoday_value is not None else 0.0  # Convert None to 0
             }
             
             return result

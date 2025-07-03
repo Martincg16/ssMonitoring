@@ -3,11 +3,12 @@
 ========================================================================================
 TO-DO
 
-- Revisión de huawei al buscar los proyectos para traer los invesores y granular
-- Completar instruccines de registro solis + registro solis
+- Conectar a APS
+- Conectar cronjobs
+- Set up logs correctamente según log streams + groups
 
 DÓNDE QUEDÉ
-- Creación (más no revisón) de solisCrud def insert_solis_generacion_sistema_dia(data):
+- deploy
 
 
 ========================================================================================
@@ -29,7 +30,7 @@ from solarDataNewSystem.register.huaweiRegister import register_and_fetch_huawei
 from solarDataFetch.fetchers.huaweiFetcher import HuaweiFetcher
 fetcher = HuaweiFetcher()
 token = fetcher.login()
-station_code = 'NE=35527492'  # Replace with your actual code
+station_code = 'NE=34096408'  # Replace with your actual code
 inverters = register_and_fetch_huawei_history(token, station_code)
 4. This creates the inverters. The MPPT will be created on their own by the fetcher + crud
 

@@ -1,13 +1,15 @@
 import requests
-from datetime import datetime, timezone
+import json
 import hashlib
 import base64
-import json
 import hmac
 import pytz
+import logging
+from datetime import datetime, timezone
 from solarData.models import Proyecto
 
-# Set up logger
+# Set up logger for Solis fetcher operations
+logger = logging.getLogger('solis_fetcher')
 
 class SolisFetcher:
     url = "https://www.soliscloud.com:13333"
@@ -28,7 +30,6 @@ class SolisFetcher:
         Returns:
             str: The Base64 encoded string of the MD5 hash of the body.
         """
-        import json
         if isinstance(body, dict):
             body = json.dumps(body, separators=(",", ":"), ensure_ascii=False)
         encoded_body = body.encode('utf-8')
@@ -124,11 +125,14 @@ class SolisFetcher:
         Uses /v1/api/stationDayEnergyList endpoint.
         Returns data with PVYield=0 for any system with no data.
         """
+        logger.info(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| Starting Solis system generation data fetch for batch {batch_number} on date {collect_time}")
+        
         endpoint = "/v1/api/stationDayEnergyList"
         body = {"pageNo":f"{batch_number}", "pageSize": 100, "time": collect_time}
         headers = self.build_solis_headers("POST", endpoint, body)
 
         try:
+            logger.info(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| Making Solis API call to {self.url + endpoint} for batch {batch_number}")
             response = requests.post(self.url + endpoint, headers=headers, json=body)
             response.raise_for_status()
             parsed = response.json()
@@ -137,6 +141,7 @@ class SolisFetcher:
             if not parsed.get("success", False):
                 error_msg = parsed.get("msg", "Unknown error from Solis API")
                 error_code = parsed.get("code", "N/A")
+                logger.error(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| Solis API returned error for batch {batch_number}: {error_msg} (code {error_code})")
                 raise RuntimeError(f"Solis API error (code {error_code}): {error_msg}")
                 
             # Transform to required output structure, ensuring PVYield is 0 when no data
@@ -148,13 +153,18 @@ class SolisFetcher:
                 }
                 for rec in parsed.get("data", {}).get("records", [])
             ]
+            
+            logger.info(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| Solis system generation data fetched successfully for batch {batch_number}: {len(result_list)} systems")
             return result_list
             
         except requests.exceptions.HTTPError as http_err:
+            logger.error(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| HTTP error in Solis system fetch for batch {batch_number}: {http_err}")
             raise RuntimeError(f"HTTP error occurred: {http_err}") from http_err
         except json.JSONDecodeError as json_err:
+            logger.error(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| JSON decode error in Solis system fetch for batch {batch_number}: {json_err}")
             raise RuntimeError(f"Failed to parse JSON response: {json_err}") from json_err
         except Exception as e:
+            logger.error(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| Unexpected error in Solis system fetch for batch {batch_number}: {e}")
             raise RuntimeError(f"Unexpected error: {e}") from e
 
     def fetch_solis_generacion_un_inversor_dia(self, inverter_id, collect_time):
@@ -174,6 +184,8 @@ class SolisFetcher:
         Raises:
             RuntimeError: If there's an HTTP error, JSON decode error, or API returns success=False.
         """
+        logger.info(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| Starting Solis inverter data fetch for inverter {inverter_id} on date {collect_time}")
+        
         endpoint = "/v1/api/inverterDay"
         body = {
             "id": inverter_id,
@@ -184,13 +196,15 @@ class SolisFetcher:
         headers = self.build_solis_headers("POST", endpoint, body)
 
         try:
+            logger.info(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| Making Solis API call to {self.url + endpoint} for inverter {inverter_id}")
             response = requests.post(self.url + endpoint, headers=headers, json=body)
             response.raise_for_status()
             parsed = response.json()
-
+            
             # Extract last eToday value and format output
             data_array = parsed.get("data", [])
             if not data_array:
+                logger.warning(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| No data found for Solis inverter {inverter_id} on {collect_time}, returning 0 production")
                 # Return 0 production if no data found
                 return {
                     'identificador_inversor': f'{inverter_id}',
@@ -214,11 +228,15 @@ class SolisFetcher:
                 'PVYield': float(etoday_value) if etoday_value is not None else 0.0  # Convert None to 0
             }
             
+            logger.info(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| Solis inverter data fetched successfully for inverter {inverter_id}: PVYield = {result['PVYield']} kWh")
             return result
             
         except requests.exceptions.HTTPError as http_err:
+            logger.error(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| HTTP error in Solis inverter fetch for {inverter_id}: {http_err}")
             raise RuntimeError(f"HTTP error occurred: {http_err}") from http_err
         except json.JSONDecodeError as json_err:
+            logger.error(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| JSON decode error in Solis inverter fetch for {inverter_id}: {json_err}")
             raise RuntimeError(f"Failed to parse JSON response: {json_err}") from json_err
         except Exception as e:
+            logger.error(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| Unexpected error in Solis inverter fetch for {inverter_id}: {e}")
             raise RuntimeError(f"Unexpected error: {e}") from e

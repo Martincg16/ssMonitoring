@@ -8,7 +8,8 @@ from django.core.management import call_command
 from django.utils import timezone
 import logging
 
-logger = logging.getLogger(__name__)
+# Use the management commands logger for orchestration logging
+logger = logging.getLogger('management_commands')
 
 
 class Command(BaseCommand):
@@ -42,6 +43,7 @@ class Command(BaseCommand):
             ('huawei_granular_gen_yesterday', 'Huawei Granular Generation'),
         ]
         
+        logger.info(f"Starting collection of all yesterday data at {timezone.now()}")
         self.stdout.write(
             self.style.SUCCESS(
                 f'🚀 Starting collection of all yesterday data at {timezone.now()}'
@@ -53,6 +55,7 @@ class Command(BaseCommand):
         results = []
         
         for command_name, description in commands:
+            logger.info(f"Running command: {command_name} ({description})")
             self.stdout.write(f'\n📊 Running: {description}...')
             
             try:
@@ -63,6 +66,7 @@ class Command(BaseCommand):
                     # Run silently
                     call_command(command_name, verbosity=0)
                 
+                logger.info(f"Command {command_name} completed successfully")
                 self.stdout.write(
                     self.style.SUCCESS(f'✅ {description} - SUCCESS')
                 )
@@ -71,6 +75,7 @@ class Command(BaseCommand):
                 
             except Exception as e:
                 error_msg = str(e)
+                logger.error(f"Command {command_name} failed: {error_msg}")
                 self.stdout.write(
                     self.style.ERROR(f'❌ {description} - FAILED: {error_msg}')
                 )

@@ -3,7 +3,7 @@ from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, Genera
 from datetime import datetime, timezone
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('solis_store')
 
 def insert_solis_generacion_sistema_dia(data):
     """
@@ -12,27 +12,35 @@ def insert_solis_generacion_sistema_dia(data):
         data (list): List of dicts as returned by fetch_solis_generacion_sistema_dia
                     Expected format: [{'id': '1298491919449989596', 'collectTime': '2025-06-05', 'PVYield': 17.0}, ...]
     """
+    logger.info(f"|SolisStore|insert_solis_generacion_sistema_dia| Starting system generation data insertion for {len(data)} entries")
+    
+    successful_inserts = 0
+    skipped_entries = 0
+    
     for entry in data:
         station_id = entry.get('id')
         pvyield = entry.get('PVYield')
         collect_time = entry.get('collectTime')
         
         if not (station_id and pvyield is not None and collect_time):
-            logger.warning(f"Incomplete entry skipped: {entry}")
+            logger.warning(f"|SolisStore|insert_solis_generacion_sistema_dia| Incomplete entry skipped: {entry}")
+            skipped_entries += 1
             continue  # Skip incomplete entries
         
         # Parse date string (YYYY-MM-DD format) to date object
         try:
             date_obj = datetime.strptime(collect_time, '%Y-%m-%d').date()
         except ValueError as e:
-            logger.warning(f"Invalid date format '{collect_time}' in entry: {entry}. Error: {e}")
+            logger.warning(f"|SolisStore|insert_solis_generacion_sistema_dia| Invalid date format '{collect_time}' in entry: {entry}. Error: {e}")
+            skipped_entries += 1
             continue
         
         # Find the project by station ID
         try:
             proyecto = Proyecto.objects.get(identificador_planta=station_id)
         except Proyecto.DoesNotExist:
-            logger.warning(f"Proyecto with identificador_planta '{station_id}' not found. Entry skipped for date {date_obj}.")
+            logger.warning(f"|SolisStore|insert_solis_generacion_sistema_dia| Proyecto with identificador_planta '{station_id}' not found. Entry skipped for date {date_obj}.")
+            skipped_entries += 1
             continue
         
         # Insert or update the daily generation record
@@ -43,9 +51,13 @@ def insert_solis_generacion_sistema_dia(data):
         )
         
         if created:
-            logger.info(f"Created new GeneracionEnergiaDiaria for project {station_id} on {date_obj}: {pvyield} kWh")
+            logger.info(f"|SolisStore|insert_solis_generacion_sistema_dia| Created new GeneracionEnergiaDiaria for project {station_id} on {date_obj}: {pvyield} kWh")
         else:
-            logger.info(f"Updated GeneracionEnergiaDiaria for project {station_id} on {date_obj}: {pvyield} kWh")
+            logger.info(f"|SolisStore|insert_solis_generacion_sistema_dia| Updated GeneracionEnergiaDiaria for project {station_id} on {date_obj}: {pvyield} kWh")
+        
+        successful_inserts += 1
+    
+    logger.info(f"|SolisStore|insert_solis_generacion_sistema_dia| Completed system generation data insertion: {successful_inserts} successful, {skipped_entries} skipped")
 
 
 def insert_solis_generacion_inversor_dia(data):
@@ -55,26 +67,28 @@ def insert_solis_generacion_inversor_dia(data):
         data (dict): Dict as returned by fetch_solis_generacion_un_inversor_dia
                     Expected format: {'identificador_inversor': '1308675217948062296', 'collectTime': '18-06-2025', 'PVYield': 22.6}
     """
+    logger.info(f"|SolisStore|insert_solis_generacion_inversor_dia| Starting inverter generation data insertion for entry: {data}")
+    
     identificador_inversor = data.get('identificador_inversor')
     pvyield = data.get('PVYield')
     collect_time = data.get('collectTime')
     
     if not (identificador_inversor and pvyield is not None and collect_time):
-        logger.warning(f"Incomplete entry skipped: {data}")
+        logger.warning(f"|SolisStore|insert_solis_generacion_inversor_dia| Incomplete entry skipped: {data}")
         return  # Skip incomplete entry
     
     # Parse date string (DD-MM-YYYY format) to date object
     try:
         date_obj = datetime.strptime(collect_time, '%d-%m-%Y').date()
     except ValueError as e:
-        logger.warning(f"Invalid date format '{collect_time}' in entry: {data}. Error: {e}")
+        logger.warning(f"|SolisStore|insert_solis_generacion_inversor_dia| Invalid date format '{collect_time}' in entry: {data}. Error: {e}")
         return
     
     # Find the inverter by identificador_inversor
     try:
         inversor = Inversor.objects.get(identificador_inversor=identificador_inversor)
     except Inversor.DoesNotExist:
-        logger.warning(f"Inversor with identificador_inversor '{identificador_inversor}' not found. Entry skipped for date {date_obj}.")
+        logger.warning(f"|SolisStore|insert_solis_generacion_inversor_dia| Inversor with identificador_inversor '{identificador_inversor}' not found. Entry skipped for date {date_obj}.")
         return
     
     # Insert or update the daily inverter generation record
@@ -86,7 +100,9 @@ def insert_solis_generacion_inversor_dia(data):
     )
     
     if created:
-        logger.info(f"Created new GeneracionInversorDiaria for inverter {identificador_inversor} on {date_obj}: {pvyield} kWh")
+        logger.info(f"|SolisStore|insert_solis_generacion_inversor_dia| Created new GeneracionInversorDiaria for inverter {identificador_inversor} on {date_obj}: {pvyield} kWh")
     else:
-        logger.info(f"Updated GeneracionInversorDiaria for inverter {identificador_inversor} on {date_obj}: {pvyield} kWh")
+        logger.info(f"|SolisStore|insert_solis_generacion_inversor_dia| Updated GeneracionInversorDiaria for inverter {identificador_inversor} on {date_obj}: {pvyield} kWh")
+    
+    logger.info(f"|SolisStore|insert_solis_generacion_inversor_dia| Successfully completed inverter generation data insertion for {identificador_inversor}")
 

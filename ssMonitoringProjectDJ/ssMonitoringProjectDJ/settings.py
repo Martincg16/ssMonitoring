@@ -146,7 +146,7 @@ REST_FRAMEWORK = {
 }
 
 # Django Logging Configuration for CloudWatch
-# This sets up logging that writes to files, which CloudWatch Agent automatically picks up
+# This sets up organized logging that writes to separate files for each fetcher
 LOGGING = {
     # Always use version 1 for Django logging configuration
     'version': 1,
@@ -156,8 +156,13 @@ LOGGING = {
     
     # FORMATTERS: Define how log messages should look
     'formatters': {
-        'simple': {
-            # Format: "2025-01-15 10:30:15 INFO huawei_fetcher Starting login attempt"
+        'fetcher_format': {
+            # Format: "2025-01-15 10:30:15 INFO solarDataFetch Starting Huawei login attempt"
+            'format': '{asctime} {levelname} solarDataFetch {message}',
+            'style': '{',  # Use new-style string formatting
+        },
+        'general_format': {
+            # Format: "2025-01-15 10:30:15 INFO django General application message"
             'format': '{asctime} {levelname} {name} {message}',
             'style': '{',  # Use new-style string formatting
         },
@@ -165,37 +170,127 @@ LOGGING = {
     
     # HANDLERS: Define where logs should go
     'handlers': {
-        # FILE HANDLER: Writes logs to a file (CloudWatch Agent reads this file)
-        'file': {
-            'level': 'INFO',  # Only log INFO level and above
-            'class': 'logging.FileHandler',  # Write to file
-            'filename': BASE_DIR.parent / 'logs' / 'django.log',  # Windows-compatible path
-            'formatter': 'simple',  # Use the 'simple' formatter defined above
+        # HUAWEI FETCHER HANDLER: Logs for Huawei operations
+        'huawei_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'huawei_fetcher.log',
+            'formatter': 'fetcher_format',
+        },
+        
+        # SOLIS FETCHER HANDLER: Logs for Solis operations  
+        'solis_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'solis_fetcher.log',
+            'formatter': 'fetcher_format',
+        },
+        
+        # HUAWEI STORE HANDLER: Logs for Huawei CRUD operations
+        'huawei_store_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'huawei_store.log',
+            'formatter': 'fetcher_format',
+        },
+        
+        # SOLIS STORE HANDLER: Logs for Solis CRUD operations  
+        'solis_store_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'solis_store.log',
+            'formatter': 'fetcher_format',
+        },
+        
+        # HUAWEI NEW SYSTEM HANDLER: Logs for Huawei registration operations
+        'huawei_newsystem_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'huawei_newsystem.log',
+            'formatter': 'fetcher_format',
+        },
+        
+        # SOLIS NEW SYSTEM HANDLER: Logs for Solis registration operations
+        'solis_newsystem_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'solis_newsystem.log',
+            'formatter': 'fetcher_format',
+        },
+        
+        # GENERAL DJANGO HANDLER: Other Django application logs
+        'django_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'django_general.log',
+            'formatter': 'general_format',
         },
         
         # CONSOLE HANDLER: Prints logs to terminal/console (for debugging)
         'console': {
-            'level': 'INFO',  # Only log INFO level and above
-            'class': 'logging.StreamHandler',  # Print to stdout/stderr
-            'formatter': 'simple',  # Use the 'simple' formatter defined above
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'general_format',
         },
     },
     
     # LOGGERS: Define which code can log and how
     'loggers': {
-        # Logger for Huawei fetcher code
+        # Logger for Huawei fetcher operations
         'huawei_fetcher': {
-            'handlers': ['file', 'console'],  # Send logs to both file and console
-            'level': 'INFO',  # Minimum level to log
-            'propagate': False,  # Don't pass logs to parent loggers (prevents duplicates)
+            'handlers': ['huawei_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
         },
         
-        # Add more loggers here as needed:
-        # 'solis_fetcher': {
-        #     'handlers': ['file', 'console'],
-        #     'level': 'INFO',
-        #     'propagate': False,
-        # },
+        # Logger for Solis fetcher operations
+        'solis_fetcher': {
+            'handlers': ['solis_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        
+        # Logger for Huawei CRUD operations
+        'huawei_store': {
+            'handlers': ['huawei_store_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        
+        # Logger for Solis CRUD operations
+        'solis_store': {
+            'handlers': ['solis_store_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        
+        # Logger for Huawei registration operations
+        'huawei_newsystem': {
+            'handlers': ['huawei_newsystem_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        
+        # Logger for Solis registration operations
+        'solis_newsystem': {
+            'handlers': ['solis_newsystem_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        
+        # Logger for management commands
+        'management_commands': {
+            'handlers': ['django_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        
+        # General Django application logger
+        'django': {
+            'handlers': ['django_file', 'console'],
+            'level': 'WARNING',  # Only warnings and errors for general Django
+            'propagate': False,
+        },
     },
 }
 

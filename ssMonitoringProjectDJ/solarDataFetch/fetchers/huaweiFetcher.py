@@ -1,6 +1,9 @@
 import requests
 import logging
+import pytz
+import traceback
 from datetime import datetime
+from django.utils import timezone as django_timezone
 from solarData.models import Proyecto, Inversor
 from collections import defaultdict
 
@@ -16,7 +19,7 @@ class HuaweiFetcher:
 
     def login(self):
         login_url = self.BASE_URL + "login"
-        logger.info(f"Starting Huawei API login attempt to {login_url}")
+        logger.info(f"|HuaweiFetcher|login| Starting Huawei API login attempt to {login_url}")
         
         try:
             response = requests.post(login_url, json=self.LOGIN_BODY)
@@ -26,7 +29,7 @@ class HuaweiFetcher:
             if not xsrf_token:
                 raise ValueError("xsrf-token not found in response headers")
             
-            logger.info(f"Huawei API login successful - token received")
+            logger.info(f"|HuaweiFetcher|login| Huawei API login successful - token received")
             return xsrf_token
         except requests.exceptions.HTTPError as http_err:
             raise RuntimeError(f"HTTP error occurred during Huawei login: {http_err}") from http_err
@@ -47,9 +50,6 @@ class HuaweiFetcher:
         Given a datetime, return the Colombian timezone midnight timestamp in milliseconds.
         Properly handles DST transitions.
         """
-        import pytz
-        from django.utils import timezone as django_timezone
-        
         colombia_tz = pytz.timezone('America/Bogota')
         
         # Ensure the datetime is timezone-aware
@@ -72,16 +72,18 @@ class HuaweiFetcher:
         Returns:
             dict: The parsed JSON response from the Huawei API.
         """
-        logger.info(f"Fetching Huawei generation data for batch {batch_number} at {collect_time}")
+        logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| Starting Huawei system generation data fetch for batch {batch_number} at {collect_time}")
         if batch_number < 1:
+            logger.error(f"|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| Invalid batch_number: {batch_number}, must be >= 1")
             raise ValueError("batch_number must be >= 1")
         if collect_time is None:
+            logger.error("|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| collect_time parameter is required")
             raise ValueError("collect_time (milliseconds since epoch) is required.")
         if not token:
+            logger.error("|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| xsrf-token parameter is required")
             raise ValueError("xsrf-token is required as a parameter.")
 
         # If collect_time is a datetime, convert to Colombian midnight ms
-        from datetime import datetime
         if isinstance(collect_time, datetime):
             collect_time = self.midnight_colombia_timestamp(collect_time)
 
@@ -92,8 +94,10 @@ class HuaweiFetcher:
         plant_codes = ','.join([p.identificador_planta for p in batch if p.identificador_planta])
         
         if not plant_codes:
+            logger.warning(f"|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| No Huawei projects found for batch {batch_number}")
             return {"error": "No Huawei projects found for this batch."}
 
+        logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| Making API call to {self.BASE_URL}getKpiStationDay for batch {batch_number} with {len(batch)} systems")
         url = self.BASE_URL + "getKpiStationDay"
         headers = {
             "xsrf-token": token,
@@ -134,7 +138,7 @@ class HuaweiFetcher:
                     'collectTime': collect_time,
                     'PVYield': 0 if pvyield in (None, "None") else pvyield
                 })
-        logger.info(f"Huawei generation data fetched for batch {batch_number} at {collect_time}")
+        logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| Successfully fetched Huawei system generation data for batch {batch_number}: {len(result)} systems")
         return result
     
     def fetch_huawei_generacion_inversor_dia(self, dev_type_id, batch_number=1, collect_time=None, token=None):
@@ -148,9 +152,13 @@ class HuaweiFetcher:
         Returns:
             Raw API response (dict)
         """
+        logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| Starting Huawei inverter generation data fetch for dev_type_id {dev_type_id}, batch {batch_number}")
+        
         if collect_time is None:
+            logger.error("|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| collect_time parameter is required for inverter fetch")
             raise ValueError("collect_time (milliseconds since epoch) is required.")
         if not token:
+            logger.error("|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| xsrf-token parameter is required for inverter fetch")
             raise ValueError("xsrf-token is required as a parameter.")
 
         batch_size = 100
@@ -160,8 +168,10 @@ class HuaweiFetcher:
         dev_ids = [inv.identificador_inversor for inv in batch if inv.identificador_inversor]
         dev_ids_str = ",".join(dev_ids)
         if not dev_ids_str:
+            logger.warning(f"|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| No Huawei inverters found for dev_type_id {dev_type_id}, batch {batch_number}")
             return {"error": "No Huawei inverters found for this batch and devTypeId."}
 
+        logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| Making API call to {self.BASE_URL}getDevKpiDay for dev_type_id {dev_type_id}, batch {batch_number} with {len(dev_ids)} inverters")
         url = self.BASE_URL + "getDevKpiDay"
         headers = {
             "xsrf-token": token,
@@ -210,6 +220,7 @@ class HuaweiFetcher:
                 'collectTime': collect_time,
                 'product_power': 0 if product_power in (None, "None") else product_power,
             })
+        logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| Successfully fetched Huawei inverter generation data for dev_type_id {dev_type_id}, batch {batch_number}: {len(result)} inverters")
         return result
 
     def fetch_huawei_generacion_granular_dia(self, dev_type_id, batch_number=1, collect_time_0=None, collect_time_1=None, token=None):
@@ -226,9 +237,13 @@ class HuaweiFetcher:
         Returns:
             QuerySet: The batch of devices (Inversor objects) for this request.
         """
+        logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| Starting Huawei granular (MPPT) data fetch for dev_type_id {dev_type_id}, batch {batch_number}")
+        
         if batch_number < 1:
+            logger.error(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| Invalid batch_number for granular fetch: {batch_number}, must be >= 1")
             raise ValueError("batch_number must be >= 1")
         if dev_type_id is None:
+            logger.error("|HuaweiFetcher|fetch_huawei_generacion_granular_dia| dev_type_id is required for granular fetch")
             raise ValueError("dev_type_id is required.")
 
         batch_size = 10
@@ -236,13 +251,16 @@ class HuaweiFetcher:
         qs = Inversor.objects.filter(huawei_devTypeId=dev_type_id).order_by('id')
         batch = qs[offset:offset + batch_size]
         if not batch:
+            logger.warning(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| No devices found for dev_type_id {dev_type_id}, batch {batch_number}")
             raise ValueError("No devices found for the given dev_type_id and batch number.")
 
         # Prepare devIds as a comma-separated string of serials
         dev_ids = ','.join([inv.identificador_inversor for inv in batch if inv.identificador_inversor])
         if not dev_ids:
+            logger.error(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| No device serials found in batch {batch_number} for dev_type_id {dev_type_id}")
             raise ValueError("No device serials found in batch.")
 
+        logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| Making API call to {self.BASE_URL}getDevHistoryKpi for dev_type_id {dev_type_id}, batch {batch_number} with {len(batch)} devices")
         url = self.BASE_URL + "getDevHistoryKpi"
         headers = {
             "xsrf-token": token,
@@ -320,4 +338,6 @@ class HuaweiFetcher:
             # Use NE=... serial as key if found, else dev_id
             serial_key = serial_map.get(dev_id, dev_id)  # Use the NE=... serial if available, otherwise use dev_id
             results[serial_key] = mppt_results  # Store the MPPT results for this device in the results dictionary
+        
+        logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| Successfully fetched Huawei granular (MPPT) data for dev_type_id {dev_type_id}, batch {batch_number}: {len(results)} devices with MPPT data")
         return results  # Return the final dictionary mapping NE=... serials (or devIds) to their MPPT energy results

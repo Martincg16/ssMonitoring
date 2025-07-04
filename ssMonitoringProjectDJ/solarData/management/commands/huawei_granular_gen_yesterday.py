@@ -4,6 +4,7 @@ from solarDataStore.cruds.huaweiCruds import insert_huawei_generacion_granular_d
 from django.utils import timezone
 from datetime import datetime, timedelta
 import logging
+import traceback
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
@@ -57,7 +58,7 @@ class Command(BaseCommand):
                     insert_huawei_generacion_granular_dia(mppt_energy_dict, date_obj)
                 except Exception as e:
                     print(f"[ERROR] Exception in insert_huawei_generacion_granular_dia: {e}")
-                    import traceback; traceback.print_exc()
+                    traceback.print_exc()
                 if num_inverters < BATCH_SIZE:
                     self.stdout.write(self.style.NOTICE(f"Last batch for dev_type_id {dev_type_id}. Processed {num_inverters} inverters, which is less than batch size {BATCH_SIZE}. Exiting batch loop."))
                     logger.info(f"Last batch for dev_type_id {dev_type_id}. Processed {num_inverters} inverters, which is less than batch size {BATCH_SIZE}. Exiting batch loop.")

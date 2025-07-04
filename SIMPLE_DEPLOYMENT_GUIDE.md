@@ -247,6 +247,66 @@ sudo systemctl stop solar-monitoring
 sudo systemctl start solar-monitoring
 ```
 
+## Step 12: CloudWatch Logging Configuration (CRITICAL)
+
+The application includes organized CloudWatch logging that automatically separates logs by component:
+
+### Organized Log Structure
+
+The deployment automatically creates:
+- **`/aws/ssmonitoring/django/solarDataFetch`** with streams:
+  - `Huawei` - All Huawei API operations and data fetching
+  - `Solis` - All Solis API operations and data fetching
+- **`/aws/ssmonitoring/django/Commands`** with stream:
+  - `management-commands` - Command orchestration and general operations
+
+### Log File Organization
+
+Local log files on EC2:
+```bash
+/opt/solar-monitoring/logs/
+├── huawei_fetcher.log     → CloudWatch: /aws/ssmonitoring/django/solarDataFetch (Huawei stream)
+├── solis_fetcher.log      → CloudWatch: /aws/ssmonitoring/django/solarDataFetch (Solis stream)
+└── django_general.log     → CloudWatch: /aws/ssmonitoring/django/Commands (management-commands stream)
+```
+
+### CloudWatch Configuration
+
+The deployment script automatically:
+✅ **Copies CloudWatch configuration** from `infrastructure/cloudwatch-config.json`  
+✅ **Stops and restarts CloudWatch agent** with new configuration  
+✅ **Verifies agent status** and reports success/failure  
+✅ **Creates organized log groups and streams** automatically  
+
+### Troubleshooting CloudWatch
+
+If CloudWatch logging is not working:
+
+```bash
+# Check CloudWatch agent status
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a status -m ec2
+
+# Check agent logs
+sudo tail -f /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
+
+# Manually reconfigure CloudWatch (if needed)
+sudo cp /opt/solar-monitoring/infrastructure/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/etc/
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-config.json -s
+
+# Verify local log files are being created
+ls -la /opt/solar-monitoring/logs/
+tail -f /opt/solar-monitoring/logs/huawei_fetcher.log
+```
+
+### Log Format Benefits
+
+Each log entry includes the component and function for easy filtering:
+- **Huawei**: `|HuaweiFetcher|login|`, `|HuaweiFetcher|fetch_huawei_generacion_sistema_dia|`
+- **Solis**: `|SolisFetcher|fetch_solis_generacion_sistema_dia|`, `|SolisFetcher|fetch_solis_generacion_un_inversor_dia|`
+- **Commands**: Standard Django logging with command orchestration
+
+This allows you to filter logs in CloudWatch by searching for specific components or functions.
+
 ## 🔄 Updating Your Application
 
 ### Option A: Automated Deployment (Recommended)

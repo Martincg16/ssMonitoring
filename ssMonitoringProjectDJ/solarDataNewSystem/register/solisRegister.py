@@ -9,7 +9,7 @@ from solarData.models import Proyecto, Inversor, MarcasInversores
 from datetime import date
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('solis_newsystem')
 
 class SolisRegister:
     url = "https://www.soliscloud.com:13333"
@@ -30,7 +30,6 @@ class SolisRegister:
         Returns:
             str: The Base64 encoded string of the MD5 hash of the body.
         """
-        import json
         if isinstance(body, dict):
             body = json.dumps(body, separators=(",", ":"), ensure_ascii=False)
         encoded_body = body.encode('utf-8')
@@ -95,6 +94,8 @@ class SolisRegister:
         Uses /v1/api/stationDayEnergyList endpoint.
         For now, only prepares and prints the request details.
         """
+        logger.info(f"|SolisNewSystem|solis_obtain_inverter_list| Starting inverter list fetch for batch {batch_number}")
+        
         endpoint = "/v1/api/inverterList"
         # Placeholder body; update as needed for real request
         body = {
@@ -103,6 +104,7 @@ class SolisRegister:
         headers = self.build_solis_headers("POST", endpoint, body)
 
         try:
+            logger.info(f"|SolisNewSystem|solis_obtain_inverter_list| Making API call to {self.url + endpoint} for batch {batch_number}")
             response = requests.post(self.url + endpoint, headers=headers, json=body)
             response.raise_for_status()  # Raises HTTPError for 4XX/5XX responses
             parsed = response.json()
@@ -110,6 +112,8 @@ class SolisRegister:
             # Extract only inverter_id and plant_id from the response
             inverter_list = []
             records = parsed.get("data", {}).get("page", {}).get("records", [])
+            
+            logger.info(f"|SolisNewSystem|solis_obtain_inverter_list| Successfully received {len(records)} records for batch {batch_number}")
             
             for record in records:
                 inverter_id = record.get("id")
@@ -125,13 +129,17 @@ class SolisRegister:
                         "power": power
                     })
             
+            logger.info(f"|SolisNewSystem|solis_obtain_inverter_list| Processed {len(inverter_list)} valid inverters for batch {batch_number}")
             return inverter_list
             
         except requests.exceptions.HTTPError as http_err:
+            logger.error(f"|SolisNewSystem|solis_obtain_inverter_list| HTTP error for batch {batch_number}: {http_err}")
             raise RuntimeError(f"HTTP error occurred: {http_err}") from http_err
         except json.JSONDecodeError as json_err:
+            logger.error(f"|SolisNewSystem|solis_obtain_inverter_list| JSON decode error for batch {batch_number}: {json_err}")
             raise RuntimeError(f"Failed to parse JSON response: {json_err}") from json_err
         except Exception as e:
+            logger.error(f"|SolisNewSystem|solis_obtain_inverter_list| Unexpected error for batch {batch_number}: {e}")
             raise RuntimeError(f"Unexpected error: {e}") from e
         
     def solis_register_new_project(self):
@@ -139,12 +147,14 @@ class SolisRegister:
         Register all Solis projects and inverters in the database.
         Loops through all pages to get complete inverter list.
         """
+        logger.info(f"|SolisNewSystem|solis_register_new_project| Starting Solis project and inverter registration")
         
         # Get Solis brand (marca_inversor_id = 2)
         try:
             marca_solis = MarcasInversores.objects.get(id=2)
+            logger.info(f"|SolisNewSystem|solis_register_new_project| Found Solis brand: {marca_solis.nombre}")
         except MarcasInversores.DoesNotExist:
-            logger.error("MarcasInversores with id=2 (Solis) not found in database")
+            logger.error("|SolisNewSystem|solis_register_new_project| MarcasInversores with id=2 (Solis) not found in database")
             raise RuntimeError("Solis brand not found in database. Please create MarcasInversores with id=2")
         
         total_projects_created = 0
@@ -152,12 +162,14 @@ class SolisRegister:
         batch_number = 1
         
         while True:
+            logger.info(f"|SolisNewSystem|solis_register_new_project| Processing batch {batch_number}")
             print(f"🔄 Processing batch {batch_number}...")
             
             # Get inverter list for current batch
             inverter_data = self.solis_obtain_inverter_list(batch_number)
             
             if not inverter_data:
+                logger.info(f"|SolisNewSystem|solis_register_new_project| No more data found at batch {batch_number}. Stopping registration")
                 print(f"✅ No more data found at batch {batch_number}. Stopping.")
                 break
             
@@ -172,6 +184,8 @@ class SolisRegister:
                         "inverters": []
                     }
                 plants_data[plant_id]["inverters"].append(item["inverter_id"])
+            
+            logger.info(f"|SolisNewSystem|solis_register_new_project| Found {len(plants_data)} unique plants in batch {batch_number}")
             
             # Process each plant
             for plant_id, plant_info in plants_data.items():
@@ -191,10 +205,10 @@ class SolisRegister:
                 
                 if created:
                     total_projects_created += 1
-                    logger.info(f"✅ Created new Proyecto: {proyecto.dealname} (ID: {plant_id})")
+                    logger.info(f"|SolisNewSystem|solis_register_new_project| Created new Proyecto: {proyecto.dealname} (ID: {plant_id})")
                     print(f"✅ Created project: {proyecto.dealname}")
                 else:
-                    logger.info(f"⚡ Project already exists: {proyecto.dealname} (ID: {plant_id})")
+                    logger.info(f"|SolisNewSystem|solis_register_new_project| Project already exists: {proyecto.dealname} (ID: {plant_id})")
                     print(f"⚡ Project exists: {proyecto.dealname}")
                 
                 # Create inverters for this project
@@ -208,18 +222,21 @@ class SolisRegister:
                     
                     if inv_created:
                         total_inverters_created += 1
-                        logger.info(f"✅ Created new Inversor: {inverter_id} for project {proyecto.dealname}")
+                        logger.info(f"|SolisNewSystem|solis_register_new_project| Created new Inversor: {inverter_id} for project {proyecto.dealname}")
                         print(f"  ✅ Created inverter: {inverter_id}")
                     else:
-                        logger.info(f"⚡ Inversor already exists: {inverter_id}")
+                        logger.info(f"|SolisNewSystem|solis_register_new_project| Inversor already exists: {inverter_id}")
                         print(f"  ⚡ Inverter exists: {inverter_id}")
             
             # Check if we got less than 100 items (last page)
             if len(inverter_data) < 100:
+                logger.info(f"|SolisNewSystem|solis_register_new_project| Last batch processed (got {len(inverter_data)} items). Stopping registration")
                 print(f"✅ Last batch processed (got {len(inverter_data)} items). Stopping.")
                 break
             
             batch_number += 1
+        
+        logger.info(f"|SolisNewSystem|solis_register_new_project| Registration completed: {batch_number} batches processed, {total_projects_created} projects created, {total_inverters_created} inverters created")
         
         return {
             "batches_processed": batch_number,

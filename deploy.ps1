@@ -91,8 +91,31 @@ if ($HTTP_CODE -eq 200) {
     Write-Host "Check logs with: sudo systemctl status solar-monitoring" -ForegroundColor Cyan
 }
 
-# Step 6: Verify logging, CloudWatch and Cron setup
-Write-Host "Verifying logging, CloudWatch and Cron setup..." -ForegroundColor Yellow
-ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "echo '=== Application Logs ===' && ls -la /opt/solar-monitoring/logs/ && echo '=== Django Log Content ===' && cat /opt/solar-monitoring/logs/django.log 2>/dev/null || echo 'No logs yet' && echo -e '\n=== CloudWatch Agent Status ===' && sudo systemctl is-active amazon-cloudwatch-agent && echo 'CloudWatch Agent is running and sending logs to AWS CloudWatch /aws/solar-monitoring/django' && echo -e '\n=== Cron Jobs Status ===' && cd /opt/solar-monitoring/ssMonitoringProjectDJ && source ../venv/bin/activate && python manage.py crontab show && echo -e '\n=== System Crontab ===' && crontab -l"
+# Step 6: Setup CloudWatch Agent with organized logging (CRITICAL SECTION)
+Write-Host "Setting up CloudWatch Agent with organized logging..." -ForegroundColor Yellow
+
+# Ensure CloudWatch agent exists and copy configuration
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc/"
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo cp /opt/solar-monitoring/infrastructure/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/etc/"
+
+# Stop CloudWatch agent if running
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop -m ec2 || true"
+
+# Apply new configuration and start agent
+Write-Host "Applying CloudWatch configuration..." -ForegroundColor Yellow
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-config.json -s"
+
+# Verify CloudWatch agent status
+$CLOUDWATCH_STATUS = ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a status -m ec2 2>/dev/null | grep -o '\"running\"' || echo 'stopped'"
+
+if ($CLOUDWATCH_STATUS -eq '"running"') {
+    Write-Host "✅ CloudWatch Agent successfully configured and running" -ForegroundColor Green
+} else {
+    Write-Host "⚠️  CloudWatch Agent configuration issue - manual check may be needed" -ForegroundColor Yellow
+}
+
+# Step 7: Verify logging, CloudWatch and Cron setup
+Write-Host "Verifying organized logging setup..." -ForegroundColor Yellow
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "echo '=== Application Logs ===' && ls -la /opt/solar-monitoring/logs/ && echo -e '\n=== Organized Log Files ===' && echo 'Huawei Fetcher Logs:' && tail -5 /opt/solar-monitoring/logs/huawei_fetcher.log 2>/dev/null || echo 'No Huawei logs yet' && echo -e '\nSolis Fetcher Logs:' && tail -5 /opt/solar-monitoring/logs/solis_fetcher.log 2>/dev/null || echo 'No Solis logs yet' && echo -e '\nGeneral Django Logs:' && tail -5 /opt/solar-monitoring/logs/django_general.log 2>/dev/null || echo 'No general logs yet' && echo -e '\n=== CloudWatch Agent Status ===' && sudo systemctl is-active amazon-cloudwatch-agent && echo 'CloudWatch Agent is running and sending organized logs to:' && echo '  - /aws/ssmonitoring/django/solarDataFetch (Huawei, Solis streams)' && echo '  - /aws/ssmonitoring/django/Commands (management-commands stream)' && echo -e '\n=== Cron Jobs Status ===' && cd /opt/solar-monitoring/ssMonitoringProjectDJ && source ../venv/bin/activate && python manage.py crontab show && echo -e '\n=== System Crontab ===' && crontab -l"
 
 Write-Host "Deployment automation complete!" -ForegroundColor Green 

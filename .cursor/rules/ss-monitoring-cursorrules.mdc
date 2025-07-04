@@ -3,12 +3,12 @@ description:
 globs: 
 alwaysApply: true
 ---
-#context
+# context
 We are building a solar system monitoring app. 
 The final purpose of this app is to bring information from the solar inverters. 
 After that we will be running some analysis on this information
 
-#Rules to always keep in mind
+# Rules to always keep in mind
 1. NEVER code without my direct instruction.
 2. ALWAYS show your reasoning and the steps to took to get to your answer.
 3. I am not an expert but will be with your help. Explain as much as you consider necessary when asked to.

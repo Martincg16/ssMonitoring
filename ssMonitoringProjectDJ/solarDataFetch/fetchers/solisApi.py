@@ -24,7 +24,6 @@ def process_data_to_base64_md5(body):
     Returns:
         str: The Base64 encoded string of the MD5 hash of the body.
     """
-    import json
     if isinstance(body, dict):
         body = json.dumps(body, separators=(",", ":"), ensure_ascii=False)
     encoded_body = body.encode('utf-8')

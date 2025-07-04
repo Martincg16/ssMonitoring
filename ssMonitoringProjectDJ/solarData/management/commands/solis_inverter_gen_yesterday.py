@@ -2,7 +2,8 @@ from django.core.management.base import BaseCommand, CommandError
 from solarDataFetch.fetchers.solisFetcher import SolisFetcher
 from solarDataStore.cruds.solisCruds import insert_solis_generacion_inversor_dia
 from solarData.models import Inversor
-from datetime import datetime, timedelta
+from django.utils import timezone
+from datetime import timedelta
 import time
 
 class Command(BaseCommand):
@@ -21,7 +22,7 @@ class Command(BaseCommand):
         pause_time = options['pause']
 
         # Calculate yesterday's date in YYYY-MM-DD format
-        now = datetime.now()
+        now = timezone.now()
         yesterday = now - timedelta(days=1)
         collect_time = yesterday.strftime("%Y-%m-%d")
 

@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from solarDataFetch.fetchers.huaweiFetcher import HuaweiFetcher
 from solarDataStore.cruds.huaweiCruds import insert_huawei_generacion_granular_dia
+from django.utils import timezone
 from datetime import datetime, timedelta
 import logging
 logger = logging.getLogger(__name__)
@@ -12,11 +13,11 @@ class Command(BaseCommand):
         fetcher = HuaweiFetcher()
         token = fetcher.login()
 
-        now = datetime.now()
+        now = timezone.now()
         yesterday_local = now - timedelta(days=1)
         date_obj = yesterday_local.date()
-        collect_time_0 = fetcher.midnight_gmt5_timestamp(datetime.combine(date_obj, datetime.min.time()))
-        collect_time_1 = fetcher.midnight_gmt5_timestamp(datetime.combine(date_obj + timedelta(days=1), datetime.min.time()))
+        collect_time_0 = fetcher.midnight_colombia_timestamp(datetime.combine(date_obj, datetime.min.time()))
+        collect_time_1 = fetcher.midnight_colombia_timestamp(datetime.combine(date_obj + timedelta(days=1), datetime.min.time()))
 
         dev_type_ids = ["1", "38"]
         BATCH_SIZE = 10  # Must match fetcher batch size

@@ -4,6 +4,7 @@ import hashlib
 import base64
 import json
 import hmac
+import pytz
 from solarData.models import Proyecto
 
 # Set up logger
@@ -52,6 +53,37 @@ class SolisFetcher:
         hmac_sha1 = hmac.new(self.key_secret.encode('utf-8'), string_to_sign.encode('utf-8'), digestmod='sha1')
         signature = base64.b64encode(hmac_sha1.digest()).decode('utf-8')
         return signature
+
+    def get_colombia_timezone_offset(self, target_date=None):
+        """
+        Calculate the Colombian timezone offset for a given date.
+        Handles DST transitions properly.
+        
+        Args:
+            target_date (datetime or str): The date to check. If None, uses current date.
+            
+        Returns:
+            int: Timezone offset in hours (e.g., -5 or -4)
+        """
+        colombia_tz = pytz.timezone('America/Bogota')
+        
+        if target_date is None:
+            target_date = datetime.now()
+        elif isinstance(target_date, str):
+            target_date = datetime.strptime(target_date, "%Y-%m-%d")
+            
+        # Create a datetime in Colombian timezone
+        if target_date.tzinfo is None:
+            # Make it timezone-aware in UTC first, then convert
+            target_date = pytz.utc.localize(target_date)
+        
+        colombia_time = target_date.astimezone(colombia_tz)
+        
+        # Get the UTC offset in seconds and convert to hours
+        offset_seconds = colombia_time.utcoffset().total_seconds()
+        offset_hours = int(offset_seconds / 3600)
+        
+        return offset_hours
 
     def date(self):
         """
@@ -146,7 +178,7 @@ class SolisFetcher:
         body = {
             "id": inverter_id,
             "time": collect_time,
-            "timeZone": -5,
+            "timeZone": self.get_colombia_timezone_offset(collect_time),
             "money": "COP"
         }
         headers = self.build_solis_headers("POST", endpoint, body)

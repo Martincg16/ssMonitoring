@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 from solarDataFetch.fetchers.huaweiFetcher import HuaweiFetcher
 from solarDataStore.cruds.huaweiCruds import insert_huawei_generacion_inversor_dia
-from datetime import datetime, timedelta
+from django.utils import timezone
+from datetime import timedelta
 
 class Command(BaseCommand):
     help = 'Fetch and store Huawei inverter production data for yesterday (devTypeId=1, <100 entries).'
@@ -10,9 +11,9 @@ class Command(BaseCommand):
         fetcher = HuaweiFetcher()
         token = fetcher.login()
 
-        now = datetime.now()
+        now = timezone.now()
         yesterday_local = now - timedelta(days=1)
-        collect_time = fetcher.midnight_gmt5_timestamp(yesterday_local)
+        collect_time = fetcher.midnight_colombia_timestamp(yesterday_local)
         for dev_type_id in ["1", "38"]:
             batch_number = 1
             self.stdout.write(self.style.NOTICE(f'Processing dev_type_id {dev_type_id}...'))

@@ -42,13 +42,22 @@ class HuaweiFetcher:
             raise RuntimeError(f"Unexpected error during Huawei login: {exc}") from exc
 
     @staticmethod
-    def midnight_gmt5_timestamp(dt):
+    def midnight_colombia_timestamp(dt):
         """
-        Given a datetime, return the GMT-5 midnight timestamp in milliseconds.
+        Given a datetime, return the Colombian timezone midnight timestamp in milliseconds.
+        Properly handles DST transitions.
         """
-        from datetime import timezone, timedelta, datetime
-        gmt5 = timezone(timedelta(hours=-5))
-        local_midnight = dt.astimezone(gmt5).replace(hour=0, minute=0, second=0, microsecond=0)
+        import pytz
+        from django.utils import timezone as django_timezone
+        
+        colombia_tz = pytz.timezone('America/Bogota')
+        
+        # Ensure the datetime is timezone-aware
+        if dt.tzinfo is None:
+            dt = django_timezone.make_aware(dt)
+            
+        # Convert to Colombian timezone and set to midnight
+        local_midnight = dt.astimezone(colombia_tz).replace(hour=0, minute=0, second=0, microsecond=0)
         return int(local_midnight.timestamp() * 1000)
     
     def fetch_huawei_generacion_sistema_dia(self, batch_number=1, collect_time=None, token=None):
@@ -71,10 +80,10 @@ class HuaweiFetcher:
         if not token:
             raise ValueError("xsrf-token is required as a parameter.")
 
-        # If collect_time is a datetime, convert to UTC midnight ms
+        # If collect_time is a datetime, convert to Colombian midnight ms
         from datetime import datetime
         if isinstance(collect_time, datetime):
-            collect_time = self.midnight_gmt5_timestamp(collect_time)
+            collect_time = self.midnight_colombia_timestamp(collect_time)
 
         batch_size = 100
         offset = (batch_number - 1) * batch_size
@@ -134,7 +143,7 @@ class HuaweiFetcher:
         Args:
             dev_type_id (str): The devTypeId to filter inverters.
             batch_number (int): Which batch of 100 to return.
-            collect_time (int): Timestamp in milliseconds since epoch (midnight GMT-5).
+            collect_time (int): Timestamp in milliseconds since epoch (midnight Colombian time).
             token (str): Huawei API xsrf-token.
         Returns:
             Raw API response (dict)

@@ -120,7 +120,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Bogota'
 
 USE_I18N = True
 
@@ -217,9 +217,9 @@ LOGGING = {
 
 # Django-Crontab Configuration
 CRONJOBS = [
-    # Run at 10:10 AM Colombian time (3:10 PM UTC = 15:10 UTC)
+    # Run at 3:00 AM Colombian time (now using Colombian timezone)
     # Format: minute hour day month day_of_week
-    ('10 15 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday', '--skip-errors']),
+    ('0 3 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday', '--skip-errors']),
 ]
 
 # Optional: Configure command prefix for virtual environment

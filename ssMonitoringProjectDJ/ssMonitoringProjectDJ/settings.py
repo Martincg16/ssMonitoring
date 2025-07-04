@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_crontab',
     "solarData",
     "solarDataFetch",
     "solarDataStore",
@@ -213,4 +214,17 @@ LOGGING = {
 # logger.warning("Something unexpected")   # Will show ✅
 # logger.error("An error occurred")        # Will show ✅
 # logger.critical("Critical failure")      # Will show ✅
+
+# Django-Crontab Configuration
+CRONJOBS = [
+    # Run at 10:10 AM Colombian time (3:10 PM UTC = 15:10 UTC)
+    # Format: minute hour day month day_of_week
+    ('10 15 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday', '--skip-errors']),
+]
+
+# Optional: Configure command prefix for virtual environment
+CRONTAB_COMMAND_PREFIX = 'cd /opt/solar-monitoring/ssMonitoringProjectDJ && source /opt/solar-monitoring/venv/bin/activate &&'
+
+# Optional: Prevent multiple instances from running
+CRONTAB_LOCK_JOBS = True
 

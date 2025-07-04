@@ -232,55 +232,62 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'general_format',
         },
+        
+        # EMAIL ALERT HANDLER: Sends emails for ERROR and CRITICAL logs
+        'email_alert': {
+            'level': 'ERROR',
+            'class': 'solarData.email_handler.EmailAlertHandler',
+            'formatter': 'general_format',
+        },
     },
     
     # LOGGERS: Define which code can log and how
     'loggers': {
         # Logger for Huawei fetcher operations
         'huawei_fetcher': {
-            'handlers': ['huawei_file', 'console'],
+            'handlers': ['huawei_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },
         
         # Logger for Solis fetcher operations
         'solis_fetcher': {
-            'handlers': ['solis_file', 'console'],
+            'handlers': ['solis_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },
         
         # Logger for Huawei CRUD operations
         'huawei_store': {
-            'handlers': ['huawei_store_file', 'console'],
+            'handlers': ['huawei_store_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },
         
         # Logger for Solis CRUD operations
         'solis_store': {
-            'handlers': ['solis_store_file', 'console'],
+            'handlers': ['solis_store_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },
         
         # Logger for Huawei registration operations
         'huawei_newsystem': {
-            'handlers': ['huawei_newsystem_file', 'console'],
+            'handlers': ['huawei_newsystem_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },
         
         # Logger for Solis registration operations
         'solis_newsystem': {
-            'handlers': ['solis_newsystem_file', 'console'],
+            'handlers': ['solis_newsystem_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },
         
         # Logger for management commands
         'management_commands': {
-            'handlers': ['django_file', 'console'],
+            'handlers': ['django_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -322,3 +329,28 @@ CRONTAB_COMMAND_PREFIX = 'cd /opt/solar-monitoring/ssMonitoringProjectDJ && sour
 
 # Optional: Prevent multiple instances from running
 CRONTAB_LOCK_JOBS = True
+
+# Email Configuration (Gmail or AWS SES)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# Auto-detect Gmail vs AWS SES based on FROM email address or force Gmail
+from_email = os.environ.get('ALERT_FROM_EMAIL', '')
+force_gmail = os.environ.get('FORCE_GMAIL_SMTP', 'false').lower() == 'true'
+
+if from_email.endswith('@gmail.com') or force_gmail:
+    # Gmail configuration
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+else:
+    # AWS SES configuration  
+    EMAIL_HOST = 'email-smtp.us-east-1.amazonaws.com'  # Change region if needed
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = os.environ.get('AWS_SES_SMTP_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('AWS_SES_SMTP_PASSWORD', '')
+DEFAULT_FROM_EMAIL = from_email
+
+# Email Alert Recipients (comma-separated list)
+ALERT_EMAIL_RECIPIENTS = [email.strip() for email in os.environ.get('ALERT_EMAIL_RECIPIENTS', '').split(',') if email.strip()]

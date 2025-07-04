@@ -67,6 +67,11 @@ ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "cd /opt/
 # Setup systemd service
 ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "cd /opt/solar-monitoring && sudo cp infrastructure/systemd/solar-monitoring.service /etc/systemd/system/ && sudo chmod 644 /etc/systemd/system/solar-monitoring.service && sudo systemctl daemon-reload"
 
+# Setup cron jobs automatically
+Write-Host "Setting up cron jobs..." -ForegroundColor Yellow
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo yum install -y cronie && sudo systemctl enable crond && sudo systemctl start crond"
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "cd /opt/solar-monitoring/ssMonitoringProjectDJ && source ../venv/bin/activate && python manage.py crontab remove && python manage.py crontab add"
+
 # Start service
 ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo systemctl restart solar-monitoring"
 
@@ -86,8 +91,8 @@ if ($HTTP_CODE -eq 200) {
     Write-Host "Check logs with: sudo systemctl status solar-monitoring" -ForegroundColor Cyan
 }
 
-# Step 6: Verify logging and CloudWatch setup
-Write-Host "Verifying logging and CloudWatch setup..." -ForegroundColor Yellow
-ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "echo '=== Application Logs ===' && ls -la /opt/solar-monitoring/logs/ && echo '=== Django Log Content ===' && cat /opt/solar-monitoring/logs/django.log 2>/dev/null || echo 'No logs yet' && echo -e '\n=== CloudWatch Agent Status ===' && sudo systemctl is-active amazon-cloudwatch-agent && echo 'CloudWatch Agent is running and sending logs to AWS CloudWatch /aws/solar-monitoring/django'"
+# Step 6: Verify logging, CloudWatch and Cron setup
+Write-Host "Verifying logging, CloudWatch and Cron setup..." -ForegroundColor Yellow
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "echo '=== Application Logs ===' && ls -la /opt/solar-monitoring/logs/ && echo '=== Django Log Content ===' && cat /opt/solar-monitoring/logs/django.log 2>/dev/null || echo 'No logs yet' && echo -e '\n=== CloudWatch Agent Status ===' && sudo systemctl is-active amazon-cloudwatch-agent && echo 'CloudWatch Agent is running and sending logs to AWS CloudWatch /aws/solar-monitoring/django' && echo -e '\n=== Cron Jobs Status ===' && cd /opt/solar-monitoring/ssMonitoringProjectDJ && source ../venv/bin/activate && python manage.py crontab show && echo -e '\n=== System Crontab ===' && crontab -l"
 
 Write-Host "Deployment automation complete!" -ForegroundColor Green 

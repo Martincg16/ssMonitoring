@@ -129,7 +129,99 @@ sudo systemctl start solar-monitoring
 sudo systemctl status solar-monitoring
 ```
 
-## Step 10: Access Your Application
+## Step 10: Set Up Automated Cron Jobs
+
+The application includes automated Django cron jobs for daily data collection:
+
+### Automatic Setup (via deploy.ps1)
+The deployment script automatically:
+- ✅ Installs cron service (`cronie`)
+- ✅ Enables and starts the cron daemon
+- ✅ Reads `CRONJOBS` configuration from `settings.py`
+- ✅ Adds/updates cron jobs automatically
+
+### Manual Cron Job Management (if needed)
+
+```bash
+# Install cron service (already done by deploy.ps1)
+sudo yum install -y cronie
+sudo systemctl enable crond
+sudo systemctl start crond
+
+# Navigate to Django project
+cd /opt/solar-monitoring/ssMonitoringProjectDJ
+source ../venv/bin/activate
+
+# Add cron jobs from settings.py
+python manage.py crontab add
+
+# View active cron jobs
+python manage.py crontab show
+
+# View system crontab
+crontab -l
+
+# Remove all Django cron jobs
+python manage.py crontab remove
+```
+
+### Current Cron Configuration
+
+In `ssMonitoringProjectDJ/ssMonitoringProjectDJ/settings.py`:
+```python
+CRONJOBS = [
+    # Run daily data collection at 10:10 AM Colombian time (15:10 UTC)
+    ('10 15 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday', '--skip-errors']),
+]
+```
+
+### How to Modify Cron Schedule
+
+1. **Edit the time in `settings.py`:**
+   ```python
+   # Format: minute hour day month day_of_week
+   ('10 15 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday']),
+   #   ^  ^
+   #   |  +-- Hour (0-23, UTC time)
+   #   +----- Minute (0-59)
+   ```
+
+2. **Common schedule examples:**
+   ```python
+   # Every day at 3:00 AM Colombian time (8:00 AM UTC)
+   ('0 8 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday']),
+   
+   # Every day at midnight Colombian time (5:00 AM UTC)
+   ('0 5 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday']),
+   
+   # Every hour
+   ('0 * * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday']),
+   ```
+
+3. **Deploy the changes:**
+   ```bash
+   .\deploy.ps1  # This will automatically update the cron jobs
+   ```
+
+### Troubleshooting Cron Jobs
+
+```bash
+# Check if cron daemon is running
+sudo systemctl status crond
+
+# View cron logs
+sudo tail -f /var/log/cron
+
+# Test management command manually
+cd /opt/solar-monitoring/ssMonitoringProjectDJ
+source ../venv/bin/activate
+python manage.py collect_all_gen_yesterday
+
+# Check Django logs for cron job execution
+cat /opt/solar-monitoring/logs/django.log
+```
+
+## Step 11: Access Your Application
 
 Your app will be available at:
 ```
@@ -171,8 +263,11 @@ bash deploy_to_ec2.sh
 - ✅ Creates new deployment package with latest code
 - ✅ Transfers to EC2 via SCP
 - ✅ Extracts files and updates systemd service
+- ✅ **Automatically installs and configures cron jobs**
+- ✅ **Updates cron schedule from settings.py**
 - ✅ Restarts service and verifies deployment
 - ✅ Tests both local and external access
+- ✅ **Verifies cron job setup**
 
 ### Option B: Manual Deployment
 

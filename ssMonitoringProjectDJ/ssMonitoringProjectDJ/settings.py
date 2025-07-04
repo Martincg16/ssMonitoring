@@ -227,4 +227,3 @@ CRONTAB_COMMAND_PREFIX = 'cd /opt/solar-monitoring/ssMonitoringProjectDJ && sour
 
 # Optional: Prevent multiple instances from running
 CRONTAB_LOCK_JOBS = True
-

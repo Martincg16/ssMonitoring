@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_crontab',
     "solarData",
     "solarDataFetch",
     "solarDataStore",
@@ -213,4 +214,10 @@ LOGGING = {
 # logger.warning("Something unexpected")   # Will show ✅
 # logger.error("An error occurred")        # Will show ✅
 # logger.critical("Critical failure")      # Will show ✅
+
+# Django-Crontab Configuration
+CRONJOBS = [
+    # Run at 10:10 AM Colombian time (15:10 UTC) for testing
+    ('10 15 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday']),
+]
 

@@ -308,10 +308,13 @@ mkdir -p /opt/solar-monitoring/logs
 chown -R ec2-user:ec2-user /opt/solar-monitoring
 chmod 755 /opt/solar-monitoring/logs
 
-# Create initial log file with proper permissions
+# Create initial log files with proper permissions
 touch /opt/solar-monitoring/logs/django.log
+touch /opt/solar-monitoring/logs/management_commands.log
 chown ec2-user:ec2-user /opt/solar-monitoring/logs/django.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/management_commands.log
 chmod 664 /opt/solar-monitoring/logs/django.log
+chmod 664 /opt/solar-monitoring/logs/management_commands.log
 
 # Create CloudWatch agent config
 echo "Configuring CloudWatch Agent..."
@@ -331,6 +334,12 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'EOL'
             "file_path": "/opt/solar-monitoring/logs/django.log",
             "log_group_name": "/aws/solar-monitoring/django",
             "log_stream_name": "django-{instance_id}",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/management_commands.log",
+            "log_group_name": "/aws/ssmonitoring/django/Commands",
+            "log_stream_name": "commands-{instance_id}",
             "timezone": "UTC"
           },
           {
@@ -421,7 +430,7 @@ resource "aws_db_parameter_group" "postgres" {
 
   parameter {
     name  = "log_filename"
-    value = "postgresql-%Y-%m-%d_%H.log"  # Daily log files
+    value = "postgresql.log.%Y-%m-%d-%H"  # Daily log files with correct format
     apply_method = "immediate"
   }
 
@@ -553,7 +562,7 @@ resource "aws_cloudwatch_log_group" "rds_logs" {
 # Metric filter for CRUD operations
 resource "aws_cloudwatch_log_metric_filter" "crud_operations" {
   name           = "crud-operations"
-  pattern        = "[timestamp=*] INSERT|UPDATE|DELETE|CREATE|ALTER|DROP"
+  pattern        = "?INSERT ?UPDATE ?DELETE ?CREATE ?ALTER ?DROP"
   log_group_name = aws_cloudwatch_log_group.rds_logs.name
 
   metric_transformation {
@@ -566,7 +575,7 @@ resource "aws_cloudwatch_log_metric_filter" "crud_operations" {
 # Metric filter for connections/disconnections
 resource "aws_cloudwatch_log_metric_filter" "connection_events" {
   name           = "connection-events"
-  pattern        = "[timestamp=*] connection received|disconnection complete"
+  pattern        = "?\"connection received\" ?\"disconnection complete\""
   log_group_name = aws_cloudwatch_log_group.rds_logs.name
 
   metric_transformation {

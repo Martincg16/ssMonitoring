@@ -1,9 +1,9 @@
 import requests
 import logging
-import pytz
 import traceback
 from datetime import datetime
 from django.utils import timezone as django_timezone
+from zoneinfo import ZoneInfo
 from solarData.models import Proyecto, Inversor
 from collections import defaultdict
 
@@ -50,7 +50,7 @@ class HuaweiFetcher:
         Given a datetime, return the Colombian timezone midnight timestamp in milliseconds.
         Properly handles DST transitions.
         """
-        colombia_tz = pytz.timezone('America/Bogota')
+        colombia_tz = ZoneInfo('America/Bogota')
         
         # Ensure the datetime is timezone-aware
         if dt.tzinfo is None:

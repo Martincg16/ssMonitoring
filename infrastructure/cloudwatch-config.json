@@ -17,6 +17,12 @@
           },
           {
             "file_path": "/opt/solar-monitoring/logs/django_general.log",
+            "log_group_name": "/aws/solar-monitoring/django",
+            "log_stream_name": "general",
+            "timezone": "Local"
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/management_commands.log",
             "log_group_name": "/aws/ssmonitoring/django/Commands",
             "log_stream_name": "management-commands",
             "timezone": "Local"

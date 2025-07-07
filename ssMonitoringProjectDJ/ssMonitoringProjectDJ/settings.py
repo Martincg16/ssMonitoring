@@ -219,10 +219,18 @@ LOGGING = {
         },
         
         # GENERAL DJANGO HANDLER: Other Django application logs
-        'django_file': {
+        'django_general_file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR.parent / 'logs' / 'django_general.log',
+            'formatter': 'general_format',
+        },
+        
+        # MANAGEMENT COMMANDS HANDLER: Dedicated handler for command logs
+        'commands_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'management_commands.log',
             'formatter': 'general_format',
         },
         
@@ -287,14 +295,14 @@ LOGGING = {
         
         # Logger for management commands
         'management_commands': {
-            'handlers': ['django_file', 'console', 'email_alert'],
+            'handlers': ['commands_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },
         
         # General Django application logger
         'django': {
-            'handlers': ['django_file', 'console'],
+            'handlers': ['django_general_file', 'console'],
             'level': 'WARNING',  # Only warnings and errors for general Django
             'propagate': False,
         },

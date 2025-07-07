@@ -15,3 +15,7 @@ After that we will be running some analysis on this information
 4. Unless instructed otherwise, ALWAYS use as context whatever is found in folder ssMonitoring as context
 
 5. When asked ANYTHING about a file, please review the whole file first, even if it takes more time. Even if the last question was also about that same file
+
+# Coding rules
+## Logging
+Always use |Class we are working on|function working on| to create the loggers.

@@ -1,7 +1,8 @@
-# Imports for Huawei CRUD operations
+# Imports for Solis CRUD operations
 from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
 from datetime import datetime, timezone
 import logging
+import json
 
 logger = logging.getLogger('solis_store')
 
@@ -13,6 +14,18 @@ def insert_solis_generacion_sistema_dia(data):
                     Expected format: [{'id': '1298491919449989596', 'collectTime': '2025-06-05', 'PVYield': 17.0}, ...]
     """
     logger.info(f"|SolisStore|insert_solis_generacion_sistema_dia| Starting system generation data insertion for {len(data)} entries")
+    
+    # Log the data being processed for debugging
+    try:
+        data_json_str = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+        # Truncate if very large (>3000 chars) to avoid log bloat
+        if len(data_json_str) > 3000:
+            truncated_data = data_json_str[:3000] + "... [TRUNCATED]"
+            logger.info(f"|SolisStore|insert_solis_generacion_sistema_dia| Data being processed (TRUNCATED): {truncated_data}")
+        else:
+            logger.info(f"|SolisStore|insert_solis_generacion_sistema_dia| Data being processed: {data_json_str}")
+    except Exception as e:
+        logger.warning(f"|SolisStore|insert_solis_generacion_sistema_dia| Could not serialize data for logging: {e}")
     
     successful_inserts = 0
     skipped_entries = 0
@@ -67,7 +80,15 @@ def insert_solis_generacion_inversor_dia(data):
         data (dict): Dict as returned by fetch_solis_generacion_un_inversor_dia
                     Expected format: {'identificador_inversor': '1308675217948062296', 'collectTime': '18-06-2025', 'PVYield': 22.6}
     """
-    logger.info(f"|SolisStore|insert_solis_generacion_inversor_dia| Starting inverter generation data insertion for entry: {data}")
+    logger.info(f"|SolisStore|insert_solis_generacion_inversor_dia| Starting inverter generation data insertion")
+    
+    # Log the data being processed for debugging
+    try:
+        data_json_str = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+        logger.info(f"|SolisStore|insert_solis_generacion_inversor_dia| Data being processed: {data_json_str}")
+    except Exception as e:
+        logger.warning(f"|SolisStore|insert_solis_generacion_inversor_dia| Could not serialize data for logging: {e}")
+        logger.info(f"|SolisStore|insert_solis_generacion_inversor_dia| Data being processed (fallback): {data}")
     
     identificador_inversor = data.get('identificador_inversor')
     pvyield = data.get('PVYield')

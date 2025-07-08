@@ -1,11 +1,12 @@
 """
-Master command to collect all yesterday's solar data from all systems.
+Master command to collect all solar data from all systems for a specific date.
 This command orchestrates all individual data collection commands.
 """
 
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
 from django.utils import timezone
+from datetime import datetime, timedelta
 import logging
 
 # Use the management commands logger for orchestration logging
@@ -13,9 +14,14 @@ logger = logging.getLogger('management_commands')
 
 
 class Command(BaseCommand):
-    help = 'Collect all yesterday data from Solis and Huawei systems'
+    help = 'Collect all data from Solis and Huawei systems for a specific date'
 
     def add_arguments(self, parser):
+        parser.add_argument(
+            '--date',
+            type=str,
+            help='Date to collect data for in YYYY-MM-DD format (defaults to yesterday if not provided)'
+        )
         parser.add_argument(
             '--skip-errors',
             action='store_true',
@@ -30,23 +36,42 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         skip_errors = options['skip_errors']
         verbose = options['verbose']
+        target_date = options['date']
+        
+        # Handle date parameter
+        if target_date:
+            try:
+                # Validate date format
+                datetime.strptime(target_date, '%Y-%m-%d')
+                logger.info(f"Using provided date: {target_date}")
+                self.stdout.write(self.style.NOTICE(f'Using provided date: {target_date}'))
+            except ValueError:
+                self.stdout.write(self.style.ERROR('Invalid date format. Please use YYYY-MM-DD format.'))
+                return
+        else:
+            # Default to yesterday
+            now = timezone.now()
+            yesterday = now - timedelta(days=1)
+            target_date = yesterday.strftime("%Y-%m-%d")
+            logger.info(f"No date provided, using yesterday: {target_date}")
+            self.stdout.write(self.style.NOTICE(f'No date provided, using yesterday: {target_date}'))
         
         # Define all data collection commands in logical order
         commands = [
             # Solis commands
-            ('solis_system_gen_yesterday', 'Solis System Generation'),
-            ('solis_inverter_gen_yesterday', 'Solis Inverter Generation'),
+            ('solis_system_gen', 'Solis System Generation'),
+            ('solis_inverter_gen', 'Solis Inverter Generation'),
             
             # Huawei commands
-            ('huawei_system_gen_yesterday', 'Huawei System Generation'),
-            ('huawei_inverter_gen_yesterday', 'Huawei Inverter Generation'),
-            ('huawei_granular_gen_yesterday', 'Huawei Granular Generation'),
+            ('huawei_system_gen', 'Huawei System Generation'),
+            ('huawei_inverter_gen', 'Huawei Inverter Generation'),
+            ('huawei_granular_gen', 'Huawei Granular Generation'),
         ]
         
-        logger.info(f"Starting collection of all yesterday data at {timezone.now()}")
+        logger.info(f"Starting collection of all data for {target_date} at {timezone.now()}")
         self.stdout.write(
             self.style.SUCCESS(
-                f'🚀 Starting collection of all yesterday data at {timezone.now()}'
+                f'🚀 Starting collection of all data for {target_date} at {timezone.now()}'
             )
         )
         
@@ -55,16 +80,16 @@ class Command(BaseCommand):
         results = []
         
         for command_name, description in commands:
-            logger.info(f"Running command: {command_name} ({description})")
-            self.stdout.write(f'\n📊 Running: {description}...')
+            logger.info(f"Running command: {command_name} ({description}) for date {target_date}")
+            self.stdout.write(f'\n📊 Running: {description} for {target_date}...')
             
             try:
                 if verbose:
-                    # Show command output
-                    call_command(command_name, verbosity=2)
+                    # Show command output with date parameter
+                    call_command(command_name, verbosity=2, date=target_date)
                 else:
-                    # Run silently
-                    call_command(command_name, verbosity=0)
+                    # Run silently with date parameter
+                    call_command(command_name, verbosity=0, date=target_date)
                 
                 logger.info(f"Command {command_name} completed successfully")
                 self.stdout.write(
@@ -95,7 +120,7 @@ class Command(BaseCommand):
         self.stdout.write('\n' + '='*60)
         self.stdout.write(
             self.style.SUCCESS(
-                f'📈 COLLECTION SUMMARY - Completed at {timezone.now()}'
+                f'📈 COLLECTION SUMMARY for {target_date} - Completed at {timezone.now()}'
             )
         )
         self.stdout.write(f'✅ Successful: {success_count}')
@@ -112,16 +137,16 @@ class Command(BaseCommand):
         # Final status
         if error_count == 0:
             self.stdout.write(
-                self.style.SUCCESS('\n🎉 All data collection completed successfully!')
+                self.style.SUCCESS(f'\n🎉 All data collection for {target_date} completed successfully!')
             )
         elif success_count > 0:
             self.stdout.write(
                 self.style.WARNING(
-                    f'\n⚠️  Partial success: {success_count} succeeded, {error_count} failed'
+                    f'\n⚠️  Partial success for {target_date}: {success_count} succeeded, {error_count} failed'
                 )
             )
         else:
             self.stdout.write(
-                self.style.ERROR('\n💥 All data collection commands failed!')
+                self.style.ERROR(f'\n💥 All data collection commands for {target_date} failed!')
             )
-            raise Exception(f'All {len(commands)} data collection commands failed') 
+            raise Exception(f'All {len(commands)} data collection commands failed for {target_date}') 

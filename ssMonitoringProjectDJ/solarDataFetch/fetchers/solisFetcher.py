@@ -137,6 +137,18 @@ class SolisFetcher:
             response.raise_for_status()
             parsed = response.json()
             
+            # Log the full API response for debugging
+            try:
+                response_json_str = json.dumps(parsed, ensure_ascii=False, separators=(',', ':'))
+                # Truncate if very large (>5000 chars) to avoid log bloat
+                if len(response_json_str) > 5000:
+                    truncated_response = response_json_str[:5000] + "... [TRUNCATED]"
+                    logger.info(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| API response for batch {batch_number} (TRUNCATED): {truncated_response}")
+                else:
+                    logger.info(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| API response for batch {batch_number}: {response_json_str}")
+            except Exception as e:
+                logger.warning(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| Could not serialize API response for logging: {e}")
+            
             # Check if the API returned an error in the JSON body
             if not parsed.get("success", False):
                 error_msg = parsed.get("msg", "Unknown error from Solis API")
@@ -200,6 +212,18 @@ class SolisFetcher:
             response = requests.post(self.url + endpoint, headers=headers, json=body)
             response.raise_for_status()
             parsed = response.json()
+            
+            # Log the full API response for debugging
+            try:
+                response_json_str = json.dumps(parsed, ensure_ascii=False, separators=(',', ':'))
+                # Truncate if very large (>5000 chars) to avoid log bloat
+                if len(response_json_str) > 5000:
+                    truncated_response = response_json_str[:5000] + "... [TRUNCATED]"
+                    logger.info(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| API response for inverter {inverter_id} (TRUNCATED): {truncated_response}")
+                else:
+                    logger.info(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| API response for inverter {inverter_id}: {response_json_str}")
+            except Exception as e:
+                logger.warning(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| Could not serialize API response for logging: {e}")
             
             # Extract last eToday value and format output
             data_array = parsed.get("data", [])

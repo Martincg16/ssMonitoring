@@ -3,6 +3,7 @@ from solarDataFetch.fetchers.huaweiFetcher import HuaweiFetcher
 from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
 from datetime import datetime, timezone
 import logging
+import json
 
 logger = logging.getLogger('huawei_store')
 
@@ -13,6 +14,18 @@ def insert_huawei_generacion_sistema_dia(data):
         data (list): List of dicts as returned by fetch_huawei_generacion_sistema_dia
     """
     logger.info(f"|HuaweiStore|insert_huawei_generacion_sistema_dia| Starting system generation data insertion for {len(data)} entries")
+    
+    # Log the data being processed for debugging
+    try:
+        data_json_str = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+        # Truncate if very large (>3000 chars) to avoid log bloat
+        if len(data_json_str) > 3000:
+            truncated_data = data_json_str[:3000] + "... [TRUNCATED]"
+            logger.info(f"|HuaweiStore|insert_huawei_generacion_sistema_dia| Data being processed (TRUNCATED): {truncated_data}")
+        else:
+            logger.info(f"|HuaweiStore|insert_huawei_generacion_sistema_dia| Data being processed: {data_json_str}")
+    except Exception as e:
+        logger.warning(f"|HuaweiStore|insert_huawei_generacion_sistema_dia| Could not serialize data for logging: {e}")
     
     successful_inserts = 0
     skipped_entries = 0
@@ -58,6 +71,18 @@ def insert_huawei_generacion_inversor_dia(data):
         data (list): List of dicts as returned by fetch_huawei_generacion_inversor_dia
     """
     logger.info(f"|HuaweiStore|insert_huawei_generacion_inversor_dia| Starting inverter generation data insertion for {len(data)} entries")
+    
+    # Log the data being processed for debugging
+    try:
+        data_json_str = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+        # Truncate if very large (>3000 chars) to avoid log bloat
+        if len(data_json_str) > 3000:
+            truncated_data = data_json_str[:3000] + "... [TRUNCATED]"
+            logger.info(f"|HuaweiStore|insert_huawei_generacion_inversor_dia| Data being processed (TRUNCATED): {truncated_data}")
+        else:
+            logger.info(f"|HuaweiStore|insert_huawei_generacion_inversor_dia| Data being processed: {data_json_str}")
+    except Exception as e:
+        logger.warning(f"|HuaweiStore|insert_huawei_generacion_inversor_dia| Could not serialize data for logging: {e}")
     
     successful_inserts = 0
     skipped_entries = 0
@@ -105,6 +130,18 @@ def insert_huawei_generacion_granular_dia(mppt_energy_dict, fecha_generacion):
         fecha_generacion (date): date object for the day of generation
     """
     logger.info(f"|HuaweiStore|insert_huawei_generacion_granular_dia| Starting granular (MPPT) data insertion for {len(mppt_energy_dict)} inverters on {fecha_generacion}")
+    
+    # Log the data being processed for debugging (CRITICAL for granular data issues)
+    try:
+        data_json_str = json.dumps(mppt_energy_dict, ensure_ascii=False, separators=(',', ':'))
+        # Truncate if very large (>3000 chars) to avoid log bloat
+        if len(data_json_str) > 3000:
+            truncated_data = data_json_str[:3000] + "... [TRUNCATED]"
+            logger.info(f"|HuaweiStore|insert_huawei_generacion_granular_dia| MPPT data being processed (TRUNCATED): {truncated_data}")
+        else:
+            logger.info(f"|HuaweiStore|insert_huawei_generacion_granular_dia| MPPT data being processed: {data_json_str}")
+    except Exception as e:
+        logger.warning(f"|HuaweiStore|insert_huawei_generacion_granular_dia| Could not serialize MPPT data for logging: {e}")
     
     successful_inserts = 0
     skipped_entries = 0

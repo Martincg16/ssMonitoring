@@ -1,4 +1,4 @@
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from solarDataFetch.fetchers.huaweiFetcher import HuaweiFetcher
 from solarDataStore.cruds.huaweiCruds import insert_huawei_generacion_granular_dia
 from django.utils import timezone
@@ -8,15 +8,36 @@ import traceback
 logger = logging.getLogger('management_commands')
 
 class Command(BaseCommand):
-    help = 'Fetch and store Huawei MPPT (granular) production data for yesterday.'
+    help = 'Fetch and store Huawei MPPT (granular) production data for a specific date.'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--date',
+            type=str,
+            help='Date to collect data for in YYYY-MM-DD format (defaults to yesterday if not provided)'
+        )
 
     def handle(self, *args, **options):
         fetcher = HuaweiFetcher()
         token = fetcher.login()
 
-        now = timezone.now()
-        yesterday_local = now - timedelta(days=1)
-        date_obj = yesterday_local.date()
+        # Handle date parameter
+        if options['date']:
+            try:
+                target_date = datetime.strptime(options['date'], '%Y-%m-%d').date()
+                logger.info(f"|HuaweiGranularGen|handle| Using provided date: {target_date}")
+                self.stdout.write(self.style.NOTICE(f'Using provided date: {target_date}'))
+            except ValueError:
+                raise CommandError('Invalid date format. Please use YYYY-MM-DD format.')
+        else:
+            # Default to yesterday
+            now = timezone.now()
+            yesterday_local = now - timedelta(days=1)
+            target_date = yesterday_local.date()
+            logger.info(f"|HuaweiGranularGen|handle| No date provided, using yesterday: {target_date}")
+            self.stdout.write(self.style.NOTICE(f'No date provided, using yesterday: {target_date}'))
+
+        date_obj = target_date
         collect_time_0 = fetcher.midnight_colombia_timestamp(datetime.combine(date_obj, datetime.min.time()))
         collect_time_1 = fetcher.midnight_colombia_timestamp(datetime.combine(date_obj + timedelta(days=1), datetime.min.time()))
 
@@ -47,12 +68,12 @@ class Command(BaseCommand):
                     except ValueError as ve:
                         if "No devices found for the given dev_type_id and batch number." in str(ve):
                             self.stdout.write(self.style.WARNING(f"No devices found for dev_type_id {dev_type_id} and batch {batch_number}. Ending batch loop."))
-                            logger.info(f"|HuaweiGranularGenYesterday|handle| No devices found for dev_type_id {dev_type_id} and batch {batch_number}. Ending batch loop.")
+                            logger.info(f"|HuaweiGranularGen|handle| No devices found for dev_type_id {dev_type_id} and batch {batch_number}. Ending batch loop.")
                             break  # No more devices to process in this batch
                         else:
                             raise
                 num_inverters = len(mppt_energy_dict) if mppt_energy_dict else 0
-                logger.info(f"|HuaweiGranularGenYesterday|handle| Batch {batch_number} for dev_type_id {dev_type_id}: {num_inverters} inverters processed.")
+                logger.info(f"|HuaweiGranularGen|handle| Batch {batch_number} for dev_type_id {dev_type_id}: {num_inverters} inverters processed.")
                 self.stdout.write(self.style.SUCCESS(f"Batch {batch_number} for dev_type_id {dev_type_id}: {num_inverters} inverters processed."))
                 try:
                     insert_huawei_generacion_granular_dia(mppt_energy_dict, date_obj)
@@ -61,8 +82,8 @@ class Command(BaseCommand):
                     traceback.print_exc()
                 if num_inverters < BATCH_SIZE:
                     self.stdout.write(self.style.NOTICE(f"Last batch for dev_type_id {dev_type_id}. Processed {num_inverters} inverters, which is less than batch size {BATCH_SIZE}. Exiting batch loop."))
-                    logger.info(f"|HuaweiGranularGenYesterday|handle| Last batch for dev_type_id {dev_type_id}. Processed {num_inverters} inverters, which is less than batch size {BATCH_SIZE}. Exiting batch loop.")
+                    logger.info(f"|HuaweiGranularGen|handle| Last batch for dev_type_id {dev_type_id}. Processed {num_inverters} inverters, which is less than batch size {BATCH_SIZE}. Exiting batch loop.")
                     break
                 batch_number += 1  # Only increment if not breaking
 
-        self.stdout.write(self.style.SUCCESS('All batches processed.'))
+        self.stdout.write(self.style.SUCCESS('All batches processed.')) 

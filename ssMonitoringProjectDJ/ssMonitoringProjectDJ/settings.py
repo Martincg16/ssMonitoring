@@ -329,7 +329,7 @@ LOGGING = {
 CRONJOBS = [
     # Run at 3:00 AM Colombian time (now using Colombian timezone)
     # Format: minute hour day month day_of_week
-    ('0 3 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday', '--skip-errors']),
+    ('0 3 * * *', 'django.core.management.call_command', ['collect_all_gen', '--skip-errors']),
 ]
 
 # Optional: Configure command prefix for virtual environment

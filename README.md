@@ -4,11 +4,10 @@
 TO-DO
 
 - Conectar a APS
-- Conectar cronjobs
-- Set up logs correctamente según log streams + groups
+- Agregar capacidad de inversor en inversores
 
 DÓNDE QUEDÉ
-- deploy
+
 
 
 ========================================================================================

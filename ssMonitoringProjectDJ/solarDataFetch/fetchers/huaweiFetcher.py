@@ -1,6 +1,7 @@
 import requests
 import logging
 import traceback
+import json
 from datetime import datetime
 from django.utils import timezone as django_timezone
 from zoneinfo import ZoneInfo
@@ -111,6 +112,18 @@ class HuaweiFetcher:
         response.raise_for_status()
         api_response = response.json()
 
+        # Log the full API response for debugging
+        try:
+            response_json_str = json.dumps(api_response, ensure_ascii=False, separators=(',', ':'))
+            # Truncate if very large (>5000 chars) to avoid log bloat
+            if len(response_json_str) > 5000:
+                truncated_response = response_json_str[:5000] + "... [TRUNCATED]"
+                logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| API response for batch {batch_number} (TRUNCATED): {truncated_response}")
+            else:
+                logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| API response for batch {batch_number}: {response_json_str}")
+        except Exception as e:
+            logger.warning(f"|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| Could not serialize API response for logging: {e}")
+
         # Check if user must relogin (failCode 305)
         if (
             api_response.get('failCode') == 305
@@ -185,6 +198,18 @@ class HuaweiFetcher:
         response = requests.post(url, headers=headers, json=body)
         response.raise_for_status()
         api_response = response.json()
+
+        # Log the full API response for debugging
+        try:
+            response_json_str = json.dumps(api_response, ensure_ascii=False, separators=(',', ':'))
+            # Truncate if very large (>5000 chars) to avoid log bloat
+            if len(response_json_str) > 5000:
+                truncated_response = response_json_str[:5000] + "... [TRUNCATED]"
+                logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| API response for dev_type_id {dev_type_id}, batch {batch_number} (TRUNCATED): {truncated_response}")
+            else:
+                logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| API response for dev_type_id {dev_type_id}, batch {batch_number}: {response_json_str}")
+        except Exception as e:
+            logger.warning(f"|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| Could not serialize API response for logging: {e}")
 
         # Check if user must relogin (failCode 305)
         if (
@@ -277,6 +302,18 @@ class HuaweiFetcher:
         response.raise_for_status()
         api_response = response.json()
 
+        # Log the full API response for debugging
+        try:
+            response_json_str = json.dumps(api_response, ensure_ascii=False, separators=(',', ':'))
+            # Truncate if very large (>5000 chars) to avoid log bloat
+            if len(response_json_str) > 5000:
+                truncated_response = response_json_str[:5000] + "... [TRUNCATED]"
+                logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| API response for dev_type_id {dev_type_id}, batch {batch_number} (TRUNCATED): {truncated_response}")
+            else:
+                logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| API response for dev_type_id {dev_type_id}, batch {batch_number}: {response_json_str}")
+        except Exception as e:
+            logger.warning(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| Could not serialize API response for logging: {e}")
+
         # Check if user must relogin (failCode 305)
         if (
             api_response.get('failCode') == 305
@@ -333,8 +370,15 @@ class HuaweiFetcher:
                 last_val = last.get(key) or 0   # Get the MPPT value at the end of the day (default 0 if missing)
                 # Only include if not both zero
                 if not (first_val == 0 and last_val == 0):  # Ignore this MPPT if both values are zero
-                    # Round to 2 decimals
-                    mppt_results[key] = round(last_val - first_val, 2)  # Store the energy produced, rounded to 2 decimals
+                    # Calculate daily generation
+                    daily_generation = round(last_val - first_val, 2)
+                    
+                    # Check for negative values (API data inconsistency/counter reset)
+                    if daily_generation < 0:
+                        logger.error(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| NEGATIVE GENERATION DETECTED - DevID: {dev_id}, Serial: {serial_map.get(dev_id, dev_id)}, MPPT: {key}, First: {first_val}, Last: {last_val}, Calculated: {daily_generation} kWh. Setting to 0.")
+                        daily_generation = 0  # Set to 0 instead of negative value
+                    
+                    mppt_results[key] = daily_generation  # Store the validated energy produced
             # Use NE=... serial as key if found, else dev_id
             serial_key = serial_map.get(dev_id, dev_id)  # Use the NE=... serial if available, otherwise use dev_id
             results[serial_key] = mppt_results  # Store the MPPT results for this device in the results dictionary

@@ -4,7 +4,7 @@ Handles database queries for solar system analysis and reporting
 """
 
 from django.db.models import Sum, Avg, Count
-from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria
+from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
 from datetime import datetime, date
 
 
@@ -171,6 +171,85 @@ class SolarDataQuery:
         
         return result
 
+    def get_granular_production(self, start_date, end_date):
+        """
+        Get granular production data for a date range
+        
+        Args:
+            start_date (date): Start date for the query
+            end_date (date): End date for the query (inclusive)
+            
+        Returns:
+            dict: Structured data with granular production information
+        """
+        
+        # Get all granular data
+        granular_data = Granular.objects.select_related('id_proyecto', 'id_proyecto__marca_inversor').all()
+        
+        result = {
+            'granular': {},
+            'resumen': {
+                'total_granular': granular_data.count(),
+                'rango_fechas': {
+                    'inicio': start_date.isoformat(),
+                    'fin': end_date.isoformat()
+                },
+                'total_energia_kwh': 0
+            }
+        }
+        
+        total_energia_general = 0
+        
+        # Loop through each granular unit to get its production data
+        for granular_unit in granular_data:
+            
+            # Get daily generation data for this granular unit in the date range
+            generacion_diaria = GeneracionGranularDiaria.objects.filter(
+                id_granular=granular_unit,
+                fecha_generacion_granular_dia__gte=start_date,
+                fecha_generacion_granular_dia__lte=end_date
+            ).order_by('fecha_generacion_granular_dia')
+            
+            # Calculate granular totals
+            total_energia_granular = generacion_diaria.aggregate(
+                total=Sum('energia_generada_granular_dia')
+            )['total'] or 0
+            
+            # Build daily data list
+            datos_diarios = []
+            for gen in generacion_diaria:
+                datos_diarios.append({
+                    'fecha': gen.fecha_generacion_granular_dia.isoformat(),
+                    'energia_kwh': float(gen.energia_generada_granular_dia) if gen.energia_generada_granular_dia else 0
+                })
+            
+            # Add granular data to result
+            result['granular'][str(granular_unit.id)] = {
+                'metadata': {
+                    'id': granular_unit.id,
+                    'proyecto': {
+                        'nombre': granular_unit.id_proyecto.dealname,
+                        'ciudad': granular_unit.id_proyecto.ciudad
+                    },
+                    'inversor': {
+                        'id': granular_unit.id_inversor.id,
+                        'marca_inversor': granular_unit.id_proyecto.marca_inversor.marca if granular_unit.id_proyecto.marca_inversor else None
+                    }
+                },
+                'produccion': {
+                    'total_energia_kwh': float(total_energia_granular),
+                    'dias_con_datos': len(datos_diarios),
+                    'generacion_diaria': datos_diarios
+                }
+            }
+            
+            total_energia_general += total_energia_granular
+        
+        # Update general summary
+        result['resumen']['total_energia_kwh'] = float(total_energia_general)
+        
+        return result
+
 
 # Convenience function for flexible date ranges
 def get_last_n_days_production(n_days):
@@ -209,3 +288,22 @@ def get_inverters_last_n_days_production(n_days):
     
     query = SolarDataQuery()
     return query.get_inverters_production(start_date, end_date)
+
+
+def get_granular_last_n_days_production(n_days):
+    """
+    Get granular production data for the last n days
+    
+    Args:
+        n_days (int): Number of days to retrieve (1 = yesterday only, 7 = last week, etc.)
+        
+    Returns:
+        dict: Structured data with granular production information (MPPT/string level)
+    """
+    from datetime import date, timedelta
+    
+    end_date = date.today() - timedelta(days=1)  # Yesterday
+    start_date = end_date - timedelta(days=n_days - 1)  # n days ago
+    
+    query = SolarDataQuery()
+    return query.get_granular_production(start_date, end_date)

@@ -171,7 +171,7 @@ In `ssMonitoringProjectDJ/ssMonitoringProjectDJ/settings.py`:
 ```python
 CRONJOBS = [
     # Run daily data collection at 10:10 AM Colombian time (15:10 UTC)
-    ('10 15 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday', '--skip-errors']),
+    ('10 15 * * *', 'django.core.management.call_command', ['collect_all_gen', '--skip-errors']),
 ]
 ```
 
@@ -180,7 +180,7 @@ CRONJOBS = [
 1. **Edit the time in `settings.py`:**
    ```python
    # Format: minute hour day month day_of_week
-   ('10 15 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday']),
+   ('10 15 * * *', 'django.core.management.call_command', ['collect_all_gen']),
    #   ^  ^
    #   |  +-- Hour (0-23, UTC time)
    #   +----- Minute (0-59)
@@ -189,13 +189,13 @@ CRONJOBS = [
 2. **Common schedule examples:**
    ```python
    # Every day at 3:00 AM Colombian time (8:00 AM UTC)
-   ('0 8 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday']),
+   ('0 8 * * *', 'django.core.management.call_command', ['collect_all_gen']),
    
    # Every day at midnight Colombian time (5:00 AM UTC)
-   ('0 5 * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday']),
+   ('0 5 * * *', 'django.core.management.call_command', ['collect_all_gen']),
    
    # Every hour
-   ('0 * * * *', 'django.core.management.call_command', ['collect_all_gen_yesterday']),
+   ('0 * * * *', 'django.core.management.call_command', ['collect_all_gen']),
    ```
 
 3. **Deploy the changes:**
@@ -215,7 +215,7 @@ sudo tail -f /var/log/cron
 # Test management command manually
 cd /opt/solar-monitoring/ssMonitoringProjectDJ
 source ../venv/bin/activate
-python manage.py collect_all_gen_yesterday
+python manage.py collect_all_gen
 
 # Check Django logs for cron job execution
 cat /opt/solar-monitoring/logs/django.log

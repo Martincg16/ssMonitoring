@@ -71,8 +71,8 @@ class SolarDataQuery:
                 'metadata': {
                     'id': sistema.id,
                     'nombre': sistema.dealname,
-                    'ciudad': sistema.ciudad,
-                    'departamento': sistema.departamento,
+                    'ciudad': sistema.id_ciudad.nombre_ciudad if sistema.id_ciudad else None,
+                    'departamento': sistema.id_ciudad.id_departamento.nombre_departamento if sistema.id_ciudad else None,
                     'marca_inversor': sistema.marca_inversor.marca if sistema.marca_inversor else None,
                     'capacidad_instalada_dc': float(sistema.capacidad_instalada_dc) if sistema.capacidad_instalada_dc else None,
                     'capacidad_instalada_ac': float(sistema.capacidad_instalada_ac) if sistema.capacidad_instalada_ac else None,
@@ -153,7 +153,7 @@ class SolarDataQuery:
                     'id': inversor.id,
                     'proyecto': {
                         'nombre': inversor.id_proyecto.dealname,
-                        'ciudad': inversor.id_proyecto.ciudad,
+                        'ciudad': inversor.id_proyecto.id_ciudad.nombre_ciudad if inversor.id_proyecto.id_ciudad else None,
                         'marca_inversor': inversor.id_proyecto.marca_inversor.marca if inversor.id_proyecto.marca_inversor else None
                     }
                 },
@@ -229,7 +229,7 @@ class SolarDataQuery:
                     'id': granular_unit.id,
                     'proyecto': {
                         'nombre': granular_unit.id_proyecto.dealname,
-                        'ciudad': granular_unit.id_proyecto.ciudad
+                        'ciudad': granular_unit.id_proyecto.id_ciudad.nombre_ciudad if granular_unit.id_proyecto.id_ciudad else None
                     },
                     'inversor': {
                         'id': granular_unit.id_inversor.id,

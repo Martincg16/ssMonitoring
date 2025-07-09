@@ -8,17 +8,19 @@ We are building a solar system monitoring app.
 The final purpose of this app is to bring information from the solar inverters. 
 After that we will be running some analysis on this information
 
+# Rules to always keep in mind
+1. NEVER code without my direct instruction. NEVER apply changes without my direct instruction. Things like "What do you think", "how to...", or "how about..." are not direct instructions and you should not code when given that.
+2. ALWAYS show your reasoning and the steps to took to get to your answer.
+3. I am not an expert but will be with your help. Explain as much as you consider necessary when asked to.
+4. Unless instructed otherwise, ALWAYS use as context whatever is found in folder ssMonitoring as context
+5. When asked ANYTHING about a file, please review the whole file first, even if it takes more time. Even if the last question was also about that same file
+
 # While running the terminal
 1. Never get stuck. I really don't like it when this happens. Plus you are getting stuck in simple commands like "cd" and "ls". Do what you have to do to not get stuck in the terminal. Most of the times I am away from my pc and wont be able to help.
 2. When the terminal returns an empty answer (for instance for creating something) you seem to get stuck. fix this.
 
-# Rules to always keep in mind
-1. NEVER code without my direct instruction. NEVER apply changes without my direct instruction. Things like "What do you think" or "how about..." are not direct instructions and you should not code when given that.
-2. ALWAYS show your reasoning and the steps to took to get to your answer.
-3. I am not an expert but will be with your help. Explain as much as you consider necessary when asked to.
-4. Unless instructed otherwise, ALWAYS use as context whatever is found in folder ssMonitoring as context
-
-5. When asked ANYTHING about a file, please review the whole file first, even if it takes more time. Even if the last question was also about that same file
+# While Deployment
+1. Unless directly instructed, NEVER deploy without confirmation, even if it feels like the next logical step.
 
 # Coding rules
 ## Logging
@@ -26,3 +28,4 @@ After that we will be running some analysis on this information
 
 ## Git
 - Never add / commit unless instructed directly to
+- Never touch my branches unless instructed directly to

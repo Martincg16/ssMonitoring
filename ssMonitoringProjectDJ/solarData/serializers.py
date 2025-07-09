@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, MPPT, GeneracionMPPTDiaria
+from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
 
 class ProyectoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,12 +21,12 @@ class GeneracionInversorDiariaSerializer(serializers.ModelSerializer):
         model = GeneracionInversorDiaria
         fields = '__all__'
 
-class MPPTSerializer(serializers.ModelSerializer):
+class GranularSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MPPT
+        model = Granular
         fields = '__all__'
 
-class GeneracionMPPTDiariaSerializer(serializers.ModelSerializer):
+class GeneracionGranularDiariaSerializer(serializers.ModelSerializer):
     class Meta:
-        model = GeneracionMPPTDiaria
+        model = GeneracionGranularDiaria
         fields = '__all__'

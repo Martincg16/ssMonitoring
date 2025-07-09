@@ -194,8 +194,7 @@ class SolisRegister:
                     identificador_planta=plant_id,
                     defaults={
                         'dealname': plant_info["station_name"] or f"Solis Plant {plant_id}",
-                        'ciudad': '',  # Empty as not provided by API
-                        'departamento': '',  # Empty as not provided by API
+                        # id_ciudad will use default 'vacia' automatically
                         'fecha_entrada_en_operacion': date.today(),  # Only set on creation
                         'restriccion_de_autoconsumo': False,
                         'marca_inversor': marca_solis,

@@ -8,8 +8,12 @@ We are building a solar system monitoring app.
 The final purpose of this app is to bring information from the solar inverters. 
 After that we will be running some analysis on this information
 
+# While running the terminal
+1. Never get stuck. I really don't like it when this happens. Plus you are getting stuck in simple commands like "cd" and "ls". Do what you have to do to not get stuck in the terminal. Most of the times I am away from my pc and wont be able to help.
+2. When the terminal returns an empty answer (for instance for creating something) you seem to get stuck. fix this.
+
 # Rules to always keep in mind
-1. NEVER code without my direct instruction.
+1. NEVER code without my direct instruction. NEVER apply changes without my direct instruction. Things like "What do you think" or "how about..." are not direct instructions and you should not code when given that.
 2. ALWAYS show your reasoning and the steps to took to get to your answer.
 3. I am not an expert but will be with your help. Explain as much as you consider necessary when asked to.
 4. Unless instructed otherwise, ALWAYS use as context whatever is found in folder ssMonitoring as context
@@ -18,4 +22,7 @@ After that we will be running some analysis on this information
 
 # Coding rules
 ## Logging
-Always use |Class we are working on|function working on| to create the loggers.
+- Always use |Class we are working on|function working on| to create the loggers.
+
+## Git
+- Never add / commit unless instructed directly to

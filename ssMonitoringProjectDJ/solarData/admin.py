@@ -1,11 +1,19 @@
 from django.contrib import admin
 
-from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
+from solarData.models import Departamento, Ciudad, MarcasInversores, Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
 
 @admin.register(Proyecto)
 class ProyectoAdmin(admin.ModelAdmin):
-    list_display = ('dealname', 'ciudad', 'departamento', 'energia_prometida_mes', 'energia_minima_mes', 'fecha_entrada_en_operacion', 'restriccion_de_autoconsumo')
-    search_fields = ('dealname', 'ciudad', 'departamento')
+    list_display = ('dealname', 'get_ciudad', 'get_departamento', 'energia_prometida_mes', 'energia_minima_mes', 'fecha_entrada_en_operacion', 'restriccion_de_autoconsumo')
+    search_fields = ('dealname', 'id_ciudad__nombre_ciudad', 'id_ciudad__id_departamento__nombre_departamento')
+
+    def get_ciudad(self, obj):
+        return obj.id_ciudad.nombre_ciudad if obj.id_ciudad else 'N/A'
+    get_ciudad.short_description = 'Ciudad'
+
+    def get_departamento(self, obj):
+        return obj.id_ciudad.id_departamento.nombre_departamento if obj.id_ciudad else 'N/A'
+    get_departamento.short_description = 'Departamento'
 
 @admin.register(GeneracionEnergiaDiaria)
 class GeneracionEnergiaDiariaAdmin(admin.ModelAdmin):
@@ -34,3 +42,20 @@ class GeneracionGranularDiariaAdmin(admin.ModelAdmin):
     list_display = ('id_proyecto', 'id_inversor', 'id_granular', 'energia_generada_granular_dia', 'fecha_generacion_granular_dia')
     list_filter = ('fecha_generacion_granular_dia',)
     search_fields = ('id_proyecto__dealname',)
+
+@admin.register(Departamento)
+class DepartamentoAdmin(admin.ModelAdmin):
+    list_display = ('nombre_departamento',)
+    search_fields = ('nombre_departamento',)
+
+@admin.register(Ciudad)
+class CiudadAdmin(admin.ModelAdmin):
+    list_display = ('nombre_ciudad', 'id_departamento')
+    list_filter = ('id_departamento',)
+    search_fields = ('nombre_ciudad', 'id_departamento__nombre_departamento')
+
+@admin.register(MarcasInversores)
+class MarcasInversoresAdmin(admin.ModelAdmin):
+    list_display = ('marca', 'informacion_granular')
+    list_filter = ('informacion_granular',)
+    search_fields = ('marca',)

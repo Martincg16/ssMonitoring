@@ -150,10 +150,10 @@ resource "aws_security_group" "ec2" {
   }
 }
 
-# Security Group for RDS - Allows all access for pgAdmin
+# Security Group for RDS - Secure EC2-only access
 resource "aws_security_group" "rds" {
   name        = "ss-monitoring-rds-sg"
-  description = "Security group for Solar Monitoring RDS instance"
+  description = "Security group for Solar Monitoring RDS instance - EC2 access only"
   vpc_id      = aws_vpc.main.id
 
   # Allow PostgreSQL access from EC2
@@ -164,14 +164,8 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.ec2.id]
   }
 
-  # Allow PostgreSQL access from anywhere (for local pgAdmin)
-  ingress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "PostgreSQL access from anywhere for pgAdmin"
-  }
+  # Removed public access - database only accessible through EC2
+  # This eliminates the ransomware attack vector
 
   # Allow all outbound traffic
   egress {
@@ -381,6 +375,14 @@ systemctl status amazon-cloudwatch-agent --no-pager
 echo "User-data script completed at $(date)"
 EOF
 
+  # Root EBS volume - Increase from default 2GB to 30GB
+  root_block_device {
+    volume_type = "gp3"
+    volume_size = 30
+    encrypted   = false
+    delete_on_termination = true
+  }
+
   tags = {
     Name        = "ss-monitoring-app"
     Environment = "dev"
@@ -484,8 +486,8 @@ resource "aws_db_instance" "postgres" {
   username = var.db_username
   password = var.db_password
 
-  # Make publicly accessible for local pgAdmin connection
-  publicly_accessible = true
+  # Database only accessible through EC2 instance (secure)
+  publicly_accessible = false
 
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = aws_db_subnet_group.main.name

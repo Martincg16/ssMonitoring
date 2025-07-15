@@ -327,12 +327,16 @@ LOGGING = {
 
 # Django-Crontab Configuration
 CRONJOBS = [
-    # Run at 3:00 AM Colombian time (timezone-aware execution)
+    # Run at 3:00 AM Colombian time (8:00 AM UTC = 3:00 AM COT)
     # Format: minute hour day month day_of_week
-    ('0 3 * * *', 'django.core.management.call_command', ['collect_all_gen', '--skip-errors']),
+    ('0 8 * * *', 'django.core.management.call_command', ['collect_all_gen', '--skip-errors']),
 ]
 
-# TIMEZONE-AWARE COMMAND PREFIX - Now includes Colombian timezone export
+# TIMEZONE-AWARE CONFIGURATION
+# Set the timezone for cron job scheduling
+CRONTAB_TIMEZONE = 'America/Bogota'
+
+# TIMEZONE-AWARE COMMAND PREFIX - Includes Colombian timezone export for extra safety
 # This ensures cron jobs run in Colombian timezone regardless of server timezone
 CRONTAB_COMMAND_PREFIX = 'cd /opt/solar-monitoring/ssMonitoringProjectDJ && source /opt/solar-monitoring/venv/bin/activate && export TZ=America/Bogota &&'
 

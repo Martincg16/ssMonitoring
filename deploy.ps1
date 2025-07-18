@@ -17,17 +17,21 @@ Write-Host "Deploying to EC2: $EC2_IP" -ForegroundColor Cyan
 Write-Host "Cleaning up old deployment packages..." -ForegroundColor Yellow
 Remove-Item -Path "solar-monitoring-app*" -Force -ErrorAction SilentlyContinue
 
-# Step 2: Create new deployment package
+# Step 2: Set deployment environment
+Write-Host "Setting deployment environment..." -ForegroundColor Yellow
+$env:DEPLOYMENT_ENV = "production"
+
+# Step 3: Create new deployment package
 Write-Host "Creating deployment package..." -ForegroundColor Yellow
 Compress-Archive -Path "ssMonitoringProjectDJ", ".env", "infrastructure" -DestinationPath "solar-monitoring-app.zip" -Force
 
 Write-Host "Package created: solar-monitoring-app.zip" -ForegroundColor Green
 
-# Step 3: Transfer package to EC2
+# Step 4: Transfer package to EC2
 Write-Host "Transferring package to EC2..." -ForegroundColor Yellow
 scp -i "$SSH_KEY" -o StrictHostKeyChecking=no solar-monitoring-app.zip ${REMOTE_USER}@${EC2_IP}:~/
 
-# Step 4: Deploy on EC2 - Using multiple SSH commands instead of complex script
+# Step 5: Deploy on EC2 - Using multiple SSH commands instead of complex script
 Write-Host "Deploying application on EC2..." -ForegroundColor Yellow
 
 # Setup directories
@@ -78,7 +82,7 @@ ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo sys
 # Check status
 ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo systemctl status solar-monitoring --no-pager"
 
-# Step 5: Final verification
+# Step 6: Final verification
 Write-Host "Testing external access..." -ForegroundColor Yellow
 Start-Sleep 2
 $HTTP_CODE = try { (Invoke-WebRequest -Uri "http://${EC2_IP}:8000" -UseBasicParsing -TimeoutSec 10).StatusCode } catch { 0 }
@@ -91,7 +95,7 @@ if ($HTTP_CODE -eq 200) {
     Write-Host "Check logs with: sudo systemctl status solar-monitoring" -ForegroundColor Cyan
 }
 
-# Step 6: Setup CloudWatch Agent with organized logging (CRITICAL SECTION)
+# Step 7: Setup CloudWatch Agent with organized logging (CRITICAL SECTION)
 Write-Host "Setting up CloudWatch Agent with organized logging..." -ForegroundColor Yellow
 
 # Ensure CloudWatch agent exists and copy configuration
@@ -114,7 +118,7 @@ if ($CLOUDWATCH_STATUS -eq '"running"') {
     Write-Host "⚠️  CloudWatch Agent configuration issue - manual check may be needed" -ForegroundColor Yellow
 }
 
-# Step 7: Verify logging, CloudWatch and Cron setup
+# Step 8: Verify logging, CloudWatch and Cron setup
 Write-Host "Verifying organized logging setup..." -ForegroundColor Yellow
 ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "echo '=== Application Logs ===' && ls -la /opt/solar-monitoring/logs/ && echo -e '\n=== Organized Log Files ===' && echo 'Huawei Fetcher Logs:' && tail -5 /opt/solar-monitoring/logs/huawei_fetcher.log 2>/dev/null || echo 'No Huawei logs yet' && echo -e '\nSolis Fetcher Logs:' && tail -5 /opt/solar-monitoring/logs/solis_fetcher.log 2>/dev/null || echo 'No Solis logs yet' && echo -e '\nGeneral Django Logs:' && tail -5 /opt/solar-monitoring/logs/django_general.log 2>/dev/null || echo 'No general logs yet' && echo -e '\n=== CloudWatch Agent Status ===' && sudo systemctl is-active amazon-cloudwatch-agent && echo 'CloudWatch Agent is running and sending organized logs to:' && echo '  - /aws/ssmonitoring/django/solarDataFetch (Huawei, Solis streams)' && echo '  - /aws/ssmonitoring/django/Commands (management-commands stream)' && echo -e '\n=== Cron Jobs Status ===' && cd /opt/solar-monitoring/ssMonitoringProjectDJ && source ../venv/bin/activate && python manage.py crontab show && echo -e '\n=== System Crontab ===' && crontab -l"
 

@@ -22,8 +22,46 @@ class SolarDataQuery:
             start_date (date): Start date for the query
             end_date (date): End date for the query (inclusive)
             
-        Returns:
-            dict: Structured data with system production information
+        Output structure:
+        {
+            "sistemas": {
+                "system_id": {                    # Key is the system ID as string
+                    "metadata": {
+                        "id": int,                # System ID
+                        "nombre": str,            # System name
+                        "ciudad": str,            # City name or null
+                        "departamento": str,      # Department name or null
+                        "marca_inversor": str,    # Inverter brand or null
+                        "capacidad_instalada_dc": float,  # DC capacity or null
+                        "capacidad_instalada_ac": float,  # AC capacity or null
+                        "fecha_entrada_operacion": str,   # ISO date or null
+                        "energia_prometida_mes": float,   # Monthly promised energy or null
+                        "energia_minima_mes": float,      # Minimum monthly energy or null
+                        "restriccion_de_autoconsumo": bool
+                    },
+                    "produccion": {
+                        "total_energia_kwh": float,      # Total energy in date range
+                        "dias_con_datos": int,           # Number of days with data
+                        "generacion_diaria": [           # Daily generation list
+                            {
+                                "fecha": str,            # ISO date
+                                "energia_kwh": float     # Daily energy
+                            },
+                            ...
+                        ]
+                    }
+                },
+                ...
+            },
+            "resumen": {
+                "total_sistemas": int,            # Total number of systems
+                "rango_fechas": {
+                    "inicio": str,                # ISO date
+                    "fin": str                    # ISO date
+                },
+                "total_energia_kwh": float        # Total energy all systems
+            }
+        }
         """
         
         # Get all solar systems (projects)
@@ -103,8 +141,41 @@ class SolarDataQuery:
             start_date (date): Start date for the query
             end_date (date): End date for the query (inclusive)
             
-        Returns:
-            dict: Structured data with inverter production information (flat structure)
+        Output structure:
+        {
+            "inversores": {
+                "inverter_id": {                  # Key is the inverter ID as string
+                    "metadata": {
+                        "id": int,                # Inverter ID
+                        "proyecto": {
+                            "nombre": str,        # System name
+                            "ciudad": str,        # City name or null
+                            "marca_inversor": str # Inverter brand or null
+                        }
+                    },
+                    "produccion": {
+                        "total_energia_kwh": float,     # Total energy in date range
+                        "dias_con_datos": int,          # Number of days with data
+                        "generacion_diaria": [          # Daily generation list
+                            {
+                                "fecha": str,           # ISO date
+                                "energia_kwh": float    # Daily energy
+                            },
+                            ...
+                        ]
+                    }
+                },
+                ...
+            },
+            "resumen": {
+                "total_inversores": int,          # Total number of inverters
+                "rango_fechas": {
+                    "inicio": str,                # ISO date
+                    "fin": str                    # ISO date
+                },
+                "total_energia_kwh": float        # Total energy all inverters
+            }
+        }
         """
         
         # Get all inverters
@@ -179,8 +250,41 @@ class SolarDataQuery:
             start_date (date): Start date for the query
             end_date (date): End date for the query (inclusive)
             
-        Returns:
-            dict: Structured data with granular production information
+        Output structure:
+        {
+            "granular": {
+                "granular_id": {                  # Key is the granular ID as string
+                    "metadata": {
+                        "id": int,                # Granular ID
+                        "proyecto": {
+                            "nombre": str,        # System name
+                            "ciudad": str,        # City name or null
+                            "marca_inversor": str # Inverter brand or null
+                        }
+                    },
+                    "produccion": {
+                        "total_energia_kwh": float,     # Total energy in date range
+                        "dias_con_datos": int,          # Number of days with data
+                        "generacion_diaria": [          # Daily generation list
+                            {
+                                "fecha": str,           # ISO date
+                                "energia_kwh": float    # Daily energy
+                            },
+                            ...
+                        ]
+                    }
+                },
+                ...
+            },
+            "resumen": {
+                "total_granular": int,            # Total number of granular devices
+                "rango_fechas": {
+                    "inicio": str,                # ISO date
+                    "fin": str                    # ISO date
+                },
+                "total_energia_kwh": float        # Total energy all granular
+            }
+        }
         """
         
         # Get all granular data
@@ -270,7 +374,6 @@ def get_last_n_days_production(n_days):
     query = SolarDataQuery()
     return query.get_systems_production(start_date, end_date)
 
-
 def get_inverters_last_n_days_production(n_days):
     """
     Get inverter production data for the last n days
@@ -288,7 +391,6 @@ def get_inverters_last_n_days_production(n_days):
     
     query = SolarDataQuery()
     return query.get_inverters_production(start_date, end_date)
-
 
 def get_granular_last_n_days_production(n_days):
     """

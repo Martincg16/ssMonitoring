@@ -5,6 +5,8 @@ TO-DO
 
 - Conectar a APS
 - Agregar capacidad de inversor en inversores
+- Debugging en analysis
+- Agregar mínimos de producción / promesa al cliente
 
 DÓNDE QUEDÉ
 

@@ -152,7 +152,7 @@ class SolisRegister:
         # Get Solis brand (marca_inversor_id = 2)
         try:
             marca_solis = MarcasInversores.objects.get(id=2)
-            logger.info(f"|SolisNewSystem|solis_register_new_project| Found Solis brand: {marca_solis.nombre}")
+            logger.info(f"|SolisNewSystem|solis_register_new_project| Found Solis brand: {marca_solis.marca}")
         except MarcasInversores.DoesNotExist:
             logger.error("|SolisNewSystem|solis_register_new_project| MarcasInversores with id=2 (Solis) not found in database")
             raise RuntimeError("Solis brand not found in database. Please create MarcasInversores with id=2")

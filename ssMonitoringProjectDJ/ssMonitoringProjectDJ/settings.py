@@ -167,6 +167,11 @@ LOGGING = {
             'format': '{asctime} {levelname} {name} {message}',
             'style': '{',  # Use new-style string formatting
         },
+        'analysis_format': {
+            # Format: "2025-01-15 10:30:15 INFO solarDataReports.analysis_engine Starting analysis for system XYZ"
+            'format': '{asctime} {levelname} solarDataReports.{name} {message}',
+            'style': '{',
+        },
     },
     
     # HANDLERS: Define where logs should go
@@ -248,6 +253,22 @@ LOGGING = {
             'class': 'solarData.email_handler.EmailAlertHandler',
             'formatter': 'general_format',
         },
+
+        # ANALYSIS ENGINE HANDLER: Logs for analysis engine operations
+        'analysis_engine_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'analysis_engine.log',
+            'formatter': 'analysis_format',
+        },
+
+        # QUERY ENGINE HANDLER: Logs for query engine operations
+        'query_engine_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'query_engine.log',
+            'formatter': 'analysis_format',
+        },
     },
     
     # LOGGERS: Define which code can log and how
@@ -305,6 +326,20 @@ LOGGING = {
         'django': {
             'handlers': ['django_general_file', 'console'],
             'level': 'WARNING',  # Only warnings and errors for general Django
+            'propagate': False,
+        },
+
+        # Logger for analysis engine
+        'solarDataReports.analysis_engine': {
+            'handlers': ['analysis_engine_file', 'console', 'email_alert'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Logger for query engine
+        'solarDataReports.query_engine': {
+            'handlers': ['query_engine_file', 'console', 'email_alert'],
+            'level': 'INFO',
             'propagate': False,
         },
     },

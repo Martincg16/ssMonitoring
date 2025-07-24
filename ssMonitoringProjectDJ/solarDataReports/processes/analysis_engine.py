@@ -3,9 +3,13 @@ Analysis Engine for Solar Data Reports
 Handles analysis of solar system data to detect anomalies and issues
 """
 
+import logging
 from datetime import datetime, date, timedelta
 from django.db.models import Avg, StdDev, Count
 from .query_engine import SolarDataQuery
+
+# Initialize logger
+logger = logging.getLogger('solarDataReports.analysis_engine')
 
 class SolarDataAnalysis:
     """
@@ -23,7 +27,7 @@ class SolarDataAnalysis:
         
         Args:
             check_date (date, optional): The date to check. Defaults to yesterday.
-        
+            
         Output structure:
         {
             "date": str,                  # Date checked in ISO format
@@ -39,37 +43,53 @@ class SolarDataAnalysis:
         """
         # Get the date to check
         target_date = check_date if check_date else date.today() - timedelta(days=1)
+        logger.info(f"Checking zero production systems for date: {target_date}")
         
-        # Get production data for target date
-        production_data = self.query_engine.get_systems_production(target_date, target_date)
-        
-        # Initialize result
-        result = {
-            "date": target_date.isoformat(),
-            "systems": []
-        }
-        
-        # Check each system's production
-        for system_id, system_data in production_data['sistemas'].items():
-            # Get target date's production data
-            daily_data = system_data['produccion']['generacion_diaria']
+        try:
+            # Get production data for target date
+            production_data = self.query_engine.get_systems_production(target_date, target_date)
             
-            # If no data for target date
-            if not daily_data:
-                result["systems"].append({
-                    "id": system_data['metadata']['id'],
-                    "name": system_data['metadata']['nombre'],
-                    "type": "missing"
-                })
-            # If data exists but shows zero production
-            elif daily_data[0]['energia_kwh'] == 0:
-                result["systems"].append({
-                    "id": system_data['metadata']['id'],
-                    "name": system_data['metadata']['nombre'],
-                    "type": "zero"
-                })
-        
-        return result
+            # Initialize result
+            result = {
+                "date": target_date.isoformat(),
+                "systems": []
+            }
+            
+            # Check each system's production
+            for system_id, system_data in production_data['sistemas'].items():
+                logger.debug(f"Analyzing system {system_data['metadata']['nombre']} (ID: {system_id})")
+                
+                try:
+                    # Get target date's production data
+                    daily_data = system_data['produccion']['generacion_diaria']
+                    
+                    # If no data for target date
+                    if not daily_data:
+                        logger.warning(f"No production data found for system {system_data['metadata']['nombre']} (ID: {system_id})")
+                        result["systems"].append({
+                            "id": system_data['metadata']['id'],
+                            "name": system_data['metadata']['nombre'],
+                            "type": "missing"
+                        })
+                    # If data exists but shows zero production
+                    elif daily_data[0]['energia_kwh'] == 0:
+                        logger.warning(f"Zero production detected for system {system_data['metadata']['nombre']} (ID: {system_id})")
+                        result["systems"].append({
+                            "id": system_data['metadata']['id'],
+                            "name": system_data['metadata']['nombre'],
+                            "type": "zero"
+                        })
+                        
+                except Exception as e:
+                    logger.error(f"Error analyzing system {system_data['metadata']['nombre']} (ID: {system_id}): {str(e)}")
+                    continue
+            
+            logger.info(f"Zero production check completed. Found {len(result['systems'])} systems with issues")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in check_zero_production_system_single_day: {str(e)}")
+            raise
 
     def check_zero_production_inverter_single_day(self, check_date=None):
         """
@@ -78,7 +98,7 @@ class SolarDataAnalysis:
         
         Args:
             check_date (date, optional): The date to check. Defaults to yesterday.
-        
+            
         Output structure:
         {
             "date": str,                  # Date checked in ISO format
@@ -94,37 +114,53 @@ class SolarDataAnalysis:
         """
         # Get the date to check
         target_date = check_date if check_date else date.today() - timedelta(days=1)
+        logger.info(f"Checking zero production inverters for date: {target_date}")
         
-        # Get production data for target date
-        production_data = self.query_engine.get_inverters_production(target_date, target_date)
-        
-        # Initialize result
-        result = {
-            "date": target_date.isoformat(),
-            "inverters": []
-        }
-        
-        # Check each inverter's production
-        for inverter_id, inverter_data in production_data['inversores'].items():
-            # Get target date's production data
-            daily_data = inverter_data['produccion']['generacion_diaria']
+        try:
+            # Get production data for target date
+            production_data = self.query_engine.get_inverters_production(target_date, target_date)
             
-            # If no data for target date
-            if not daily_data:
-                result["inverters"].append({
-                    "id": inverter_data['metadata']['id'],
-                    "name": inverter_data['metadata']['proyecto']['nombre'],
-                    "type": "missing"
-                })
-            # If data exists but shows zero production
-            elif daily_data[0]['energia_kwh'] == 0:
-                result["inverters"].append({
-                    "id": inverter_data['metadata']['id'],
-                    "name": inverter_data['metadata']['proyecto']['nombre'],
-                    "type": "zero"
-                })
-        
-        return result
+            # Initialize result
+            result = {
+                "date": target_date.isoformat(),
+                "inverters": []
+            }
+            
+            # Check each inverter's production
+            for inverter_id, inverter_data in production_data['inversores'].items():
+                logger.debug(f"Analyzing inverter ID: {inverter_id} from system {inverter_data['metadata']['proyecto']['nombre']}")
+                
+                try:
+                    # Get target date's production data
+                    daily_data = inverter_data['produccion']['generacion_diaria']
+                    
+                    # If no data for target date
+                    if not daily_data:
+                        logger.warning(f"No production data found for inverter {inverter_id} in system {inverter_data['metadata']['proyecto']['nombre']}")
+                        result["inverters"].append({
+                            "id": inverter_data['metadata']['id'],
+                            "name": inverter_data['metadata']['proyecto']['nombre'],
+                            "type": "missing"
+                        })
+                    # If data exists but shows zero production
+                    elif daily_data[0]['energia_kwh'] == 0:
+                        logger.warning(f"Zero production detected for inverter {inverter_id} in system {inverter_data['metadata']['proyecto']['nombre']}")
+                        result["inverters"].append({
+                            "id": inverter_data['metadata']['id'],
+                            "name": inverter_data['metadata']['proyecto']['nombre'],
+                            "type": "zero"
+                        })
+                        
+                except Exception as e:
+                    logger.error(f"Error analyzing inverter {inverter_id}: {str(e)}")
+                    continue
+            
+            logger.info(f"Zero production check completed. Found {len(result['inverters'])} inverters with issues")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in check_zero_production_inverter_single_day: {str(e)}")
+            raise
 
     def check_zero_production_granular_single_day(self, check_date=None):
         """
@@ -133,7 +169,7 @@ class SolarDataAnalysis:
         
         Args:
             check_date (date, optional): The date to check. Defaults to yesterday.
-        
+            
         Output structure:
         {
             "date": str,                  # Date checked in ISO format
@@ -149,37 +185,53 @@ class SolarDataAnalysis:
         """
         # Get the date to check
         target_date = check_date if check_date else date.today() - timedelta(days=1)
+        logger.info(f"Checking zero production granular devices for date: {target_date}")
         
-        # Get production data for target date
-        production_data = self.query_engine.get_granular_production(target_date, target_date)
-        
-        # Initialize result
-        result = {
-            "date": target_date.isoformat(),
-            "devices": []
-        }
-        
-        # Check each granular device's production
-        for device_id, device_data in production_data['granular'].items():
-            # Get target date's production data
-            daily_data = device_data['produccion']['generacion_diaria']
+        try:
+            # Get production data for target date
+            production_data = self.query_engine.get_granular_production(target_date, target_date)
             
-            # If no data for target date
-            if not daily_data:
-                result["devices"].append({
-                    "id": device_data['metadata']['id'],
-                    "name": device_data['metadata']['proyecto']['nombre'],
-                    "type": "missing"
-                })
-            # If data exists but shows zero production
-            elif daily_data[0]['energia_kwh'] == 0:
-                result["devices"].append({
-                    "id": device_data['metadata']['id'],
-                    "name": device_data['metadata']['proyecto']['nombre'],
-                    "type": "zero"
-                })
-        
-        return result 
+            # Initialize result
+            result = {
+                "date": target_date.isoformat(),
+                "devices": []
+            }
+            
+            # Check each granular device's production
+            for device_id, device_data in production_data['granular'].items():
+                logger.debug(f"Analyzing granular device ID: {device_id} from system {device_data['metadata']['proyecto']['nombre']}")
+                
+                try:
+                    # Get target date's production data
+                    daily_data = device_data['produccion']['generacion_diaria']
+                    
+                    # If no data for target date
+                    if not daily_data:
+                        logger.warning(f"No production data found for granular device {device_id} in system {device_data['metadata']['proyecto']['nombre']}")
+                        result["devices"].append({
+                            "id": device_data['metadata']['id'],
+                            "name": device_data['metadata']['proyecto']['nombre'],
+                            "type": "missing"
+                        })
+                    # If data exists but shows zero production
+                    elif daily_data[0]['energia_kwh'] == 0:
+                        logger.warning(f"Zero production detected for granular device {device_id} in system {device_data['metadata']['proyecto']['nombre']}")
+                        result["devices"].append({
+                            "id": device_data['metadata']['id'],
+                            "name": device_data['metadata']['proyecto']['nombre'],
+                            "type": "zero"
+                        })
+                        
+                except Exception as e:
+                    logger.error(f"Error analyzing granular device {device_id}: {str(e)}")
+                    continue
+            
+            logger.info(f"Zero production check completed. Found {len(result['devices'])} granular devices with issues")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in check_zero_production_granular_single_day: {str(e)}")
+            raise
 
     def check_production_deviation_systems(self, check_date=None, min_days_required=7, std_dev_threshold=1, days_to_compare=30):
         """
@@ -194,7 +246,7 @@ class SolarDataAnalysis:
             std_dev_threshold (float, optional): Number of standard deviations to consider significant.
                                               Lower values catch more deviations. Defaults to 1.
             days_to_compare (int, optional): Number of past days to use for comparison. Defaults to 30.
-        
+            
         Output structure:
         {
             "date": str,                  # Date checked in ISO format
@@ -225,69 +277,98 @@ class SolarDataAnalysis:
         target_date = check_date if check_date else date.today() - timedelta(days=1)
         start_date = target_date - timedelta(days=days_to_compare)
         
-        # Get production data for all systems
-        current_data = self.query_engine.get_systems_production(target_date, target_date)
-        historical_data = self.query_engine.get_systems_production(start_date, target_date - timedelta(days=1))
+        logger.info(f"Analyzing system production deviations for date: {target_date}")
+        logger.info(f"Using historical data from {start_date} to {target_date - timedelta(days=1)}")
+        logger.info(f"Analysis parameters: min_days={min_days_required}, std_dev_threshold={std_dev_threshold}")
         
-        # Initialize result structure
-        result = {
-            "date": target_date.isoformat(),
-            "systems": [],
-            "summary": {
-                "total_systems": len(current_data['sistemas']),
-                "systems_with_deviation": 0,
-                "comparison_period": {
-                    "start": start_date.isoformat(),
-                    "end": (target_date - timedelta(days=1)).isoformat()
+        try:
+            # Get production data for all systems
+            current_data = self.query_engine.get_systems_production(target_date, target_date)
+            historical_data = self.query_engine.get_systems_production(start_date, target_date - timedelta(days=1))
+            
+            # Initialize result structure
+            result = {
+                "date": target_date.isoformat(),
+                "systems": [],
+                "summary": {
+                    "total_systems": len(current_data['sistemas']),
+                    "systems_with_deviation": 0,
+                    "comparison_period": {
+                        "start": start_date.isoformat(),
+                        "end": (target_date - timedelta(days=1)).isoformat()
+                    }
                 }
             }
-        }
-        
-        # Process each system
-        for system_id, system_data in current_data['sistemas'].items():
-            try:
-                # Get current day's production
-                current_production = system_data['produccion']['total_energia_kwh']
+            
+            # Process each system
+            for system_id, system_data in current_data['sistemas'].items():
+                logger.debug(f"Analyzing deviations for system {system_data['metadata']['nombre']} (ID: {system_id})")
                 
-                # Get historical production data
-                if system_id in historical_data['sistemas']:
-                    hist_system = historical_data['sistemas'][system_id]
-                    daily_data = hist_system['produccion']['generacion_diaria']
+                try:
+                    # Get current day's production
+                    current_production = system_data['produccion']['total_energia_kwh']
                     
-                    # Check if we have enough data for reliable analysis
-                    if len(daily_data) >= min_days_required:
-                        # Calculate statistics
-                        daily_values = [day['energia_kwh'] for day in daily_data]
-                        avg_production = sum(daily_values) / len(daily_values)
+                    # Get historical production data
+                    if system_id in historical_data['sistemas']:
+                        hist_system = historical_data['sistemas'][system_id]
+                        daily_data = hist_system['produccion']['generacion_diaria']
                         
-                        # Calculate standard deviation
-                        squared_diff_sum = sum((x - avg_production) ** 2 for x in daily_values)
-                        std_dev = (squared_diff_sum / len(daily_values)) ** 0.5
-                        
-                        if std_dev > 0:  # Avoid division by zero
-                            deviation = (current_production - avg_production) / std_dev
+                        # Check if we have enough data for reliable analysis
+                        if len(daily_data) >= min_days_required:
+                            # Calculate statistics
+                            daily_values = [day['energia_kwh'] for day in daily_data]
+                            avg_production = sum(daily_values) / len(daily_values)
                             
-                            # Only flag systems performing below average
-                            if deviation < -std_dev_threshold:
-                                percent_diff = ((current_production - avg_production) / avg_production) * 100
+                            # Calculate standard deviation
+                            squared_diff_sum = sum((x - avg_production) ** 2 for x in daily_values)
+                            std_dev = (squared_diff_sum / len(daily_values)) ** 0.5
+                            
+                            if std_dev > 0:  # Avoid division by zero
+                                deviation = (current_production - avg_production) / std_dev
                                 
-                                result["systems"].append({
-                                    "id": system_data['metadata']['id'],
-                                    "name": system_data['metadata']['nombre'],
-                                    "current_kwh": current_production,
-                                    "avg_kwh": avg_production,
-                                    "std_dev": std_dev,
-                                    "deviation": deviation,  # Will be negative
-                                    "percent_diff": percent_diff,  # Will be negative
-                                    "days_analyzed": len(daily_values)
-                                })
-                                result["summary"]["systems_with_deviation"] += 1
-                
-            except Exception as e:
-                # Skip systems with errors and continue with next
-                continue
-        
-        return result 
+                                # Only flag systems performing below average
+                                if deviation < -std_dev_threshold:
+                                    percent_diff = ((current_production - avg_production) / avg_production) * 100
+                                    
+                                    logger.warning(
+                                        f"Significant deviation detected for system {system_data['metadata']['nombre']} "
+                                        f"(ID: {system_id}). Current: {current_production:.2f} kWh, "
+                                        f"Avg: {avg_production:.2f} kWh, "
+                                        f"Deviation: {deviation:.2f} std, "
+                                        f"Percent diff: {percent_diff:.2f}%"
+                                    )
+                                    
+                                    result["systems"].append({
+                                        "id": system_data['metadata']['id'],
+                                        "name": system_data['metadata']['nombre'],
+                                        "current_kwh": current_production,
+                                        "avg_kwh": avg_production,
+                                        "std_dev": std_dev,
+                                        "deviation": deviation,  # Will be negative
+                                        "percent_diff": percent_diff,  # Will be negative
+                                        "days_analyzed": len(daily_values)
+                                    })
+                                    result["summary"]["systems_with_deviation"] += 1
+                        else:
+                            logger.debug(
+                                f"Skipping system {system_data['metadata']['nombre']} (ID: {system_id}). "
+                                f"Insufficient historical data: {len(daily_data)} days < {min_days_required} required"
+                            )
+                    
+                except Exception as e:
+                    logger.error(f"Error analyzing system {system_data['metadata']['nombre']} (ID: {system_id}): {str(e)}")
+                    continue
+            
+            logger.info(
+                f"Production deviation analysis completed. "
+                f"Found {result['summary']['systems_with_deviation']} systems with significant deviations "
+                f"out of {result['summary']['total_systems']} total systems"
+            )
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in check_production_deviation_systems: {str(e)}")
+            raise
 
     def check_production_deviation_inverters(self, check_date=None, min_days_required=7, std_dev_threshold=1, days_to_compare=30):
         """
@@ -302,7 +383,7 @@ class SolarDataAnalysis:
             std_dev_threshold (float, optional): Number of standard deviations to consider significant.
                                               Lower values catch more deviations. Defaults to 1.
             days_to_compare (int, optional): Number of past days to use for comparison. Defaults to 30.
-        
+            
         Output structure:
         {
             "date": str,                  # Date checked in ISO format
@@ -333,69 +414,99 @@ class SolarDataAnalysis:
         target_date = check_date if check_date else date.today() - timedelta(days=1)
         start_date = target_date - timedelta(days=days_to_compare)
         
-        # Get production data for all inverters
-        current_data = self.query_engine.get_inverters_production(target_date, target_date)
-        historical_data = self.query_engine.get_inverters_production(start_date, target_date - timedelta(days=1))
+        logger.info(f"Analyzing inverter production deviations for date: {target_date}")
+        logger.info(f"Using historical data from {start_date} to {target_date - timedelta(days=1)}")
+        logger.info(f"Analysis parameters: min_days={min_days_required}, std_dev_threshold={std_dev_threshold}")
         
-        # Initialize result structure
-        result = {
-            "date": target_date.isoformat(),
-            "inverters": [],
-            "summary": {
-                "total_inverters": len(current_data['inversores']),
-                "inverters_with_deviation": 0,
-                "comparison_period": {
-                    "start": start_date.isoformat(),
-                    "end": (target_date - timedelta(days=1)).isoformat()
+        try:
+            # Get production data for all inverters
+            current_data = self.query_engine.get_inverters_production(target_date, target_date)
+            historical_data = self.query_engine.get_inverters_production(start_date, target_date - timedelta(days=1))
+            
+            # Initialize result structure
+            result = {
+                "date": target_date.isoformat(),
+                "inverters": [],
+                "summary": {
+                    "total_inverters": len(current_data['inversores']),
+                    "inverters_with_deviation": 0,
+                    "comparison_period": {
+                        "start": start_date.isoformat(),
+                        "end": (target_date - timedelta(days=1)).isoformat()
+                    }
                 }
             }
-        }
-        
-        # Process each inverter
-        for inverter_id, inverter_data in current_data['inversores'].items():
-            try:
-                # Get current day's production
-                current_production = inverter_data['produccion']['total_energia_kwh']
+            
+            # Process each inverter
+            for inverter_id, inverter_data in current_data['inversores'].items():
+                logger.debug(f"Analyzing deviations for inverter {inverter_id} in system {inverter_data['metadata']['proyecto']['nombre']}")
                 
-                # Get historical production data
-                if inverter_id in historical_data['inversores']:
-                    hist_inverter = historical_data['inversores'][inverter_id]
-                    daily_data = hist_inverter['produccion']['generacion_diaria']
+                try:
+                    # Get current day's production
+                    current_production = inverter_data['produccion']['total_energia_kwh']
                     
-                    # Check if we have enough data for reliable analysis
-                    if len(daily_data) >= min_days_required:
-                        # Calculate statistics
-                        daily_values = [day['energia_kwh'] for day in daily_data]
-                        avg_production = sum(daily_values) / len(daily_values)
+                    # Get historical production data
+                    if inverter_id in historical_data['inversores']:
+                        hist_inverter = historical_data['inversores'][inverter_id]
+                        daily_data = hist_inverter['produccion']['generacion_diaria']
                         
-                        # Calculate standard deviation
-                        squared_diff_sum = sum((x - avg_production) ** 2 for x in daily_values)
-                        std_dev = (squared_diff_sum / len(daily_values)) ** 0.5
-                        
-                        if std_dev > 0:  # Avoid division by zero
-                            deviation = (current_production - avg_production) / std_dev
+                        # Check if we have enough data for reliable analysis
+                        if len(daily_data) >= min_days_required:
+                            # Calculate statistics
+                            daily_values = [day['energia_kwh'] for day in daily_data]
+                            avg_production = sum(daily_values) / len(daily_values)
                             
-                            # Only flag inverters performing below average
-                            if deviation < -std_dev_threshold:
-                                percent_diff = ((current_production - avg_production) / avg_production) * 100
+                            # Calculate standard deviation
+                            squared_diff_sum = sum((x - avg_production) ** 2 for x in daily_values)
+                            std_dev = (squared_diff_sum / len(daily_values)) ** 0.5
+                            
+                            if std_dev > 0:  # Avoid division by zero
+                                deviation = (current_production - avg_production) / std_dev
                                 
-                                result["inverters"].append({
-                                    "id": inverter_data['metadata']['id'],
-                                    "name": inverter_data['metadata']['proyecto']['nombre'],
-                                    "current_kwh": current_production,
-                                    "avg_kwh": avg_production,
-                                    "std_dev": std_dev,
-                                    "deviation": deviation,  # Will be negative
-                                    "percent_diff": percent_diff,  # Will be negative
-                                    "days_analyzed": len(daily_values)
-                                })
-                                result["summary"]["inverters_with_deviation"] += 1
-                
-            except Exception as e:
-                # Skip inverters with errors and continue with next
-                continue
-        
-        return result
+                                # Only flag inverters performing below average
+                                if deviation < -std_dev_threshold:
+                                    percent_diff = ((current_production - avg_production) / avg_production) * 100
+                                    
+                                    logger.warning(
+                                        f"Significant deviation detected for inverter {inverter_id} "
+                                        f"in system {inverter_data['metadata']['proyecto']['nombre']}. "
+                                        f"Current: {current_production:.2f} kWh, "
+                                        f"Avg: {avg_production:.2f} kWh, "
+                                        f"Deviation: {deviation:.2f} std, "
+                                        f"Percent diff: {percent_diff:.2f}%"
+                                    )
+                                    
+                                    result["inverters"].append({
+                                        "id": inverter_data['metadata']['id'],
+                                        "name": inverter_data['metadata']['proyecto']['nombre'],
+                                        "current_kwh": current_production,
+                                        "avg_kwh": avg_production,
+                                        "std_dev": std_dev,
+                                        "deviation": deviation,  # Will be negative
+                                        "percent_diff": percent_diff,  # Will be negative
+                                        "days_analyzed": len(daily_values)
+                                    })
+                                    result["summary"]["inverters_with_deviation"] += 1
+                        else:
+                            logger.debug(
+                                f"Skipping inverter {inverter_id}. "
+                                f"Insufficient historical data: {len(daily_data)} days < {min_days_required} required"
+                            )
+                    
+                except Exception as e:
+                    logger.error(f"Error analyzing inverter {inverter_id}: {str(e)}")
+                    continue
+            
+            logger.info(
+                f"Production deviation analysis completed. "
+                f"Found {result['summary']['inverters_with_deviation']} inverters with significant deviations "
+                f"out of {result['summary']['total_inverters']} total inverters"
+            )
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in check_production_deviation_inverters: {str(e)}")
+            raise
 
     def check_production_deviation_granular(self, check_date=None, min_days_required=7, std_dev_threshold=1, days_to_compare=30):
         """
@@ -410,7 +521,7 @@ class SolarDataAnalysis:
             std_dev_threshold (float, optional): Number of standard deviations to consider significant.
                                               Lower values catch more deviations. Defaults to 1.
             days_to_compare (int, optional): Number of past days to use for comparison. Defaults to 30.
-        
+            
         Output structure:
         {
             "date": str,                  # Date checked in ISO format
@@ -441,66 +552,96 @@ class SolarDataAnalysis:
         target_date = check_date if check_date else date.today() - timedelta(days=1)
         start_date = target_date - timedelta(days=days_to_compare)
         
-        # Get production data for all granular devices
-        current_data = self.query_engine.get_granular_production(target_date, target_date)
-        historical_data = self.query_engine.get_granular_production(start_date, target_date - timedelta(days=1))
+        logger.info(f"Analyzing granular device production deviations for date: {target_date}")
+        logger.info(f"Using historical data from {start_date} to {target_date - timedelta(days=1)}")
+        logger.info(f"Analysis parameters: min_days={min_days_required}, std_dev_threshold={std_dev_threshold}")
         
-        # Initialize result structure
-        result = {
-            "date": target_date.isoformat(),
-            "devices": [],
-            "summary": {
-                "total_devices": len(current_data['granular']),
-                "devices_with_deviation": 0,
-                "comparison_period": {
-                    "start": start_date.isoformat(),
-                    "end": (target_date - timedelta(days=1)).isoformat()
+        try:
+            # Get production data for all granular devices
+            current_data = self.query_engine.get_granular_production(target_date, target_date)
+            historical_data = self.query_engine.get_granular_production(start_date, target_date - timedelta(days=1))
+            
+            # Initialize result structure
+            result = {
+                "date": target_date.isoformat(),
+                "devices": [],
+                "summary": {
+                    "total_devices": len(current_data['granular']),
+                    "devices_with_deviation": 0,
+                    "comparison_period": {
+                        "start": start_date.isoformat(),
+                        "end": (target_date - timedelta(days=1)).isoformat()
+                    }
                 }
             }
-        }
-        
-        # Process each granular device
-        for device_id, device_data in current_data['granular'].items():
-            try:
-                # Get current day's production
-                current_production = device_data['produccion']['total_energia_kwh']
+            
+            # Process each granular device
+            for device_id, device_data in current_data['granular'].items():
+                logger.debug(f"Analyzing deviations for granular device {device_id} in system {device_data['metadata']['proyecto']['nombre']}")
                 
-                # Get historical production data
-                if device_id in historical_data['granular']:
-                    hist_device = historical_data['granular'][device_id]
-                    daily_data = hist_device['produccion']['generacion_diaria']
+                try:
+                    # Get current day's production
+                    current_production = device_data['produccion']['total_energia_kwh']
                     
-                    # Check if we have enough data for reliable analysis
-                    if len(daily_data) >= min_days_required:
-                        # Calculate statistics
-                        daily_values = [day['energia_kwh'] for day in daily_data]
-                        avg_production = sum(daily_values) / len(daily_values)
+                    # Get historical production data
+                    if device_id in historical_data['granular']:
+                        hist_device = historical_data['granular'][device_id]
+                        daily_data = hist_device['produccion']['generacion_diaria']
                         
-                        # Calculate standard deviation
-                        squared_diff_sum = sum((x - avg_production) ** 2 for x in daily_values)
-                        std_dev = (squared_diff_sum / len(daily_values)) ** 0.5
-                        
-                        if std_dev > 0:  # Avoid division by zero
-                            deviation = (current_production - avg_production) / std_dev
+                        # Check if we have enough data for reliable analysis
+                        if len(daily_data) >= min_days_required:
+                            # Calculate statistics
+                            daily_values = [day['energia_kwh'] for day in daily_data]
+                            avg_production = sum(daily_values) / len(daily_values)
                             
-                            # Only flag devices performing below average
-                            if deviation < -std_dev_threshold:
-                                percent_diff = ((current_production - avg_production) / avg_production) * 100
+                            # Calculate standard deviation
+                            squared_diff_sum = sum((x - avg_production) ** 2 for x in daily_values)
+                            std_dev = (squared_diff_sum / len(daily_values)) ** 0.5
+                            
+                            if std_dev > 0:  # Avoid division by zero
+                                deviation = (current_production - avg_production) / std_dev
                                 
-                                result["devices"].append({
-                                    "id": device_data['metadata']['id'],
-                                    "name": device_data['metadata']['proyecto']['nombre'],
-                                    "current_kwh": current_production,
-                                    "avg_kwh": avg_production,
-                                    "std_dev": std_dev,
-                                    "deviation": deviation,  # Will be negative
-                                    "percent_diff": percent_diff,  # Will be negative
-                                    "days_analyzed": len(daily_values)
-                                })
-                                result["summary"]["devices_with_deviation"] += 1
-                
-            except Exception as e:
-                # Skip devices with errors and continue with next
-                continue
-        
-        return result 
+                                # Only flag devices performing below average
+                                if deviation < -std_dev_threshold:
+                                    percent_diff = ((current_production - avg_production) / avg_production) * 100
+                                    
+                                    logger.warning(
+                                        f"Significant deviation detected for granular device {device_id} "
+                                        f"in system {device_data['metadata']['proyecto']['nombre']}. "
+                                        f"Current: {current_production:.2f} kWh, "
+                                        f"Avg: {avg_production:.2f} kWh, "
+                                        f"Deviation: {deviation:.2f} std, "
+                                        f"Percent diff: {percent_diff:.2f}%"
+                                    )
+                                    
+                                    result["devices"].append({
+                                        "id": device_data['metadata']['id'],
+                                        "name": device_data['metadata']['proyecto']['nombre'],
+                                        "current_kwh": current_production,
+                                        "avg_kwh": avg_production,
+                                        "std_dev": std_dev,
+                                        "deviation": deviation,  # Will be negative
+                                        "percent_diff": percent_diff,  # Will be negative
+                                        "days_analyzed": len(daily_values)
+                                    })
+                                    result["summary"]["devices_with_deviation"] += 1
+                        else:
+                            logger.debug(
+                                f"Skipping granular device {device_id}. "
+                                f"Insufficient historical data: {len(daily_data)} days < {min_days_required} required"
+                            )
+                    
+                except Exception as e:
+                    logger.error(f"Error analyzing granular device {device_id}: {str(e)}")
+                    continue
+            
+            logger.info(
+                f"Production deviation analysis completed. "
+                f"Found {result['summary']['devices_with_deviation']} devices with significant deviations "
+                f"out of {result['summary']['total_devices']} total devices"
+            )
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in check_production_deviation_granular: {str(e)}")
+            raise 

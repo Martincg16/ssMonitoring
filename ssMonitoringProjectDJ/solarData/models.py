@@ -39,7 +39,7 @@ class Proyecto(models.Model):
     energia_minima_mes = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía mínima prometida en el mes', null=True, blank=True)
     fecha_entrada_en_operacion = models.DateField(verbose_name= 'fecha de entrada en operación')
     restriccion_de_autoconsumo = models.BooleanField(default=False, verbose_name= 'tiene restricción de autoconsumo')
-    identificador_planta = models.CharField(max_length=100, verbose_name= 'identificador de marca', null=True, blank=True)
+    identificador_planta = models.CharField(max_length=100, verbose_name= 'identificador de la planta (id)', null=True, blank=True)
     marca_inversor = models.ForeignKey(MarcasInversores, on_delete=models.CASCADE, verbose_name= 'marca de inversor', null=True, blank=True)
     capacidad_instalada_ac = models.DecimalField(max_digits=10, decimal_places=3, verbose_name= 'capacidad instalada AC', null=True, blank=True)
     capacidad_instalada_dc = models.DecimalField(max_digits=10, decimal_places=3, verbose_name= 'capacidad instalada DC', null=True, blank=True)

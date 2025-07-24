@@ -3,9 +3,8 @@
 ========================================================================================
 TO-DO
 
-- Conectar a APS
+- Conectar a APS y Hoymiles
 - Agregar capacidad de inversor en inversores
-- Debugging en analysis
 - Agregar mínimos de producción / promesa al cliente
 
 DÓNDE QUEDÉ
@@ -52,7 +51,7 @@ inverters = register_and_fetch_huawei_history(token, station_code)
 
 ### Solis
 1. Look for any new project via solarDataFetch/solisApi.list_plants_api()
-2. Add the plan manually to the database proyecto. Can be using pgAdmin or the Shell
+2. Add the plan manually to the database proyecto. Can be using pgAdmin or the Shell or DjangoAdmin
 3. In the shell run
 
 

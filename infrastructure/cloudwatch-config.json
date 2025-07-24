@@ -50,6 +50,20 @@
             "log_group_name": "/aws/ssmonitoring/django/solarDataNewSystem",
             "log_stream_name": "Solis",
             "timezone": "Local"
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/analysis_engine.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataReports/analysis_engine",
+            "log_stream_name": "{strftime:%Y-%m-%d}",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/query_engine.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataReports/query_engine",
+            "log_stream_name": "{strftime:%Y-%m-%d}",
+            "timezone": "Local",
+            "retention_in_days": 14
           }
         ]
       }

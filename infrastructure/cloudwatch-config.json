@@ -7,61 +7,69 @@
             "file_path": "/opt/solar-monitoring/logs/huawei_fetcher.log",
             "log_group_name": "/aws/ssmonitoring/django/solarDataFetch",
             "log_stream_name": "Huawei",
-            "timezone": "Local"
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/solis_fetcher.log",
             "log_group_name": "/aws/ssmonitoring/django/solarDataFetch",
             "log_stream_name": "Solis",
-            "timezone": "Local"
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/django_general.log",
             "log_group_name": "/aws/solar-monitoring/django",
             "log_stream_name": "general",
-            "timezone": "Local"
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/management_commands.log",
             "log_group_name": "/aws/ssmonitoring/django/Commands",
             "log_stream_name": "management-commands",
-            "timezone": "Local"
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/huawei_store.log",
             "log_group_name": "/aws/ssmonitoring/django/solarDataStore",
             "log_stream_name": "Huawei",
-            "timezone": "Local"
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/solis_store.log",
             "log_group_name": "/aws/ssmonitoring/django/solarDataStore",
             "log_stream_name": "Solis",
-            "timezone": "Local"
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/huawei_newsystem.log",
             "log_group_name": "/aws/ssmonitoring/django/solarDataNewSystem",
             "log_stream_name": "Huawei",
-            "timezone": "Local"
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/solis_newsystem.log",
             "log_group_name": "/aws/ssmonitoring/django/solarDataNewSystem",
             "log_stream_name": "Solis",
-            "timezone": "Local"
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/analysis_engine.log",
-            "log_group_name": "/aws/ssmonitoring/django/solarDataReports/analysis_engine",
-            "log_stream_name": "{strftime:%Y-%m-%d}",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataReports",
+            "log_stream_name": "analysis_engine",
             "timezone": "Local",
             "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/query_engine.log",
-            "log_group_name": "/aws/ssmonitoring/django/solarDataReports/query_engine",
-            "log_stream_name": "{strftime:%Y-%m-%d}",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataReports",
+            "log_stream_name": "query_engine",
             "timezone": "Local",
             "retention_in_days": 14
           }

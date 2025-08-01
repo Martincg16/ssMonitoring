@@ -57,7 +57,7 @@ class SolarDataAnalysis:
             
             # Check each system's production
             for system_id, system_data in production_data['sistemas'].items():
-                logger.debug(f"Analyzing system {system_data['metadata']['nombre']} (ID: {system_id})")
+                logger.info(f"Analyzing system {system_data['metadata']['nombre']} (ID: {system_id})")
                 
                 try:
                     # Get target date's production data
@@ -128,7 +128,7 @@ class SolarDataAnalysis:
             
             # Check each inverter's production
             for inverter_id, inverter_data in production_data['inversores'].items():
-                logger.debug(f"Analyzing inverter ID: {inverter_id} from system {inverter_data['metadata']['proyecto']['nombre']}")
+                logger.info(f"Analyzing inverter ID: {inverter_id} from system {inverter_data['metadata']['proyecto']['nombre']}")
                 
                 try:
                     # Get target date's production data
@@ -199,7 +199,7 @@ class SolarDataAnalysis:
             
             # Check each granular device's production
             for device_id, device_data in production_data['granular'].items():
-                logger.debug(f"Analyzing granular device ID: {device_id} from system {device_data['metadata']['proyecto']['nombre']}")
+                logger.info(f"Analyzing granular device ID: {device_id} from system {device_data['metadata']['proyecto']['nombre']}")
                 
                 try:
                     # Get target date's production data
@@ -302,7 +302,7 @@ class SolarDataAnalysis:
             
             # Process each system
             for system_id, system_data in current_data['sistemas'].items():
-                logger.debug(f"Analyzing deviations for system {system_data['metadata']['nombre']} (ID: {system_id})")
+                logger.info(f"Analyzing deviations for system {system_data['metadata']['nombre']} (ID: {system_id})")
                 
                 try:
                     # Get current day's production
@@ -439,7 +439,7 @@ class SolarDataAnalysis:
             
             # Process each inverter
             for inverter_id, inverter_data in current_data['inversores'].items():
-                logger.debug(f"Analyzing deviations for inverter {inverter_id} in system {inverter_data['metadata']['proyecto']['nombre']}")
+                logger.info(f"Analyzing deviations for inverter {inverter_id} in system {inverter_data['metadata']['proyecto']['nombre']}")
                 
                 try:
                     # Get current day's production
@@ -577,7 +577,7 @@ class SolarDataAnalysis:
             
             # Process each granular device
             for device_id, device_data in current_data['granular'].items():
-                logger.debug(f"Analyzing deviations for granular device {device_id} in system {device_data['metadata']['proyecto']['nombre']}")
+                logger.info(f"Analyzing deviations for granular device {device_id} in system {device_data['metadata']['proyecto']['nombre']}")
                 
                 try:
                     # Get current day's production

@@ -7,6 +7,8 @@ TO-DO
 - Agregar capacidad de inversor en inversores
 - Agregar mínimos de producción / promesa al cliente
 
+- 0 es diferente de null
+
 DÓNDE QUEDÉ
 
 

@@ -153,7 +153,7 @@ resource "aws_security_group" "ec2" {
 # Security Group for RDS - Secure EC2-only access
 resource "aws_security_group" "rds" {
   name        = "ss-monitoring-rds-sg"
-  description = "Security group for Solar Monitoring RDS instance - EC2 access only"
+  description = "Security group for Solar Monitoring RDS instance"
   vpc_id      = aws_vpc.main.id
 
   # Allow PostgreSQL access from EC2
@@ -163,9 +163,6 @@ resource "aws_security_group" "rds" {
     protocol        = "tcp"
     security_groups = [aws_security_group.ec2.id]
   }
-
-  # Removed public access - database only accessible through EC2
-  # This eliminates the ransomware attack vector
 
   # Allow all outbound traffic
   egress {
@@ -264,6 +261,17 @@ resource "aws_cloudwatch_log_group" "django_logs" {
   }
 }
 
+# CloudWatch Log Group for Solar Data Reports
+resource "aws_cloudwatch_log_group" "reports_logs" {
+  name              = "/aws/ssmonitoring/django/solarDataReports"
+  retention_in_days = 14
+
+  tags = {
+    Name        = "ss-monitoring-reports-logs"
+    Environment = "dev"
+  }
+}
+
 # EC2 Instance (Free Tier)
 resource "aws_instance" "app" {
   ami                    = data.aws_ami.amazon_linux_2023.id
@@ -305,14 +313,20 @@ chmod 755 /opt/solar-monitoring/logs
 # Create initial log files with proper permissions
 touch /opt/solar-monitoring/logs/django.log
 touch /opt/solar-monitoring/logs/management_commands.log
+touch /opt/solar-monitoring/logs/analysis_engine.log
+touch /opt/solar-monitoring/logs/query_engine.log
 chown ec2-user:ec2-user /opt/solar-monitoring/logs/django.log
 chown ec2-user:ec2-user /opt/solar-monitoring/logs/management_commands.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/analysis_engine.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/query_engine.log
 chmod 664 /opt/solar-monitoring/logs/django.log
 chmod 664 /opt/solar-monitoring/logs/management_commands.log
+chmod 664 /opt/solar-monitoring/logs/analysis_engine.log
+chmod 664 /opt/solar-monitoring/logs/query_engine.log
 
 # Create CloudWatch agent config
 echo "Configuring CloudWatch Agent..."
-mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+mkdir -p /opt/aws/amazon-cloudwatch-agent/etc/
 
 cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'EOL'
 {
@@ -325,22 +339,74 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'EOL'
       "files": {
         "collect_list": [
           {
-            "file_path": "/opt/solar-monitoring/logs/django.log",
+            "file_path": "/opt/solar-monitoring/logs/huawei_fetcher.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataFetch",
+            "log_stream_name": "Huawei",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/solis_fetcher.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataFetch",
+            "log_stream_name": "Solis",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/django_general.log",
             "log_group_name": "/aws/solar-monitoring/django",
-            "log_stream_name": "django-{instance_id}",
-            "timezone": "UTC"
+            "log_stream_name": "general",
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
             "file_path": "/opt/solar-monitoring/logs/management_commands.log",
             "log_group_name": "/aws/ssmonitoring/django/Commands",
-            "log_stream_name": "commands-{instance_id}",
-            "timezone": "UTC"
+            "log_stream_name": "management-commands",
+            "timezone": "Local",
+            "retention_in_days": 14
           },
           {
-            "file_path": "/var/log/user-data.log",
-            "log_group_name": "/aws/solar-monitoring/django",
-            "log_stream_name": "user-data-{instance_id}",
-            "timezone": "UTC"
+            "file_path": "/opt/solar-monitoring/logs/huawei_store.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataStore",
+            "log_stream_name": "Huawei",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/solis_store.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataStore",
+            "log_stream_name": "Solis",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/huawei_newsystem.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataNewSystem",
+            "log_stream_name": "Huawei",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/solis_newsystem.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataNewSystem",
+            "log_stream_name": "Solis",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/analysis_engine.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataReports/analysis_engine",
+            "log_stream_name": "{strftime:%Y-%m-%d}",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/query_engine.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataReports/query_engine",
+            "log_stream_name": "{strftime:%Y-%m-%d}",
+            "timezone": "Local",
+            "retention_in_days": 14
           }
         ]
       }

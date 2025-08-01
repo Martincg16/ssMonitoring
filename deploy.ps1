@@ -99,15 +99,15 @@ if ($HTTP_CODE -eq 200) {
 Write-Host "Setting up CloudWatch Agent with organized logging..." -ForegroundColor Yellow
 
 # Ensure CloudWatch agent exists and copy configuration
-ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc/"
-ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo cp /opt/solar-monitoring/infrastructure/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/etc/"
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc/ && sudo chown -R ec2-user:ec2-user /opt/aws/amazon-cloudwatch-agent/etc/"
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo cp /opt/solar-monitoring/infrastructure/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json && sudo chown root:root /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
 
 # Stop CloudWatch agent if running
 ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop -m ec2 || true"
 
 # Apply new configuration and start agent
 Write-Host "Applying CloudWatch configuration..." -ForegroundColor Yellow
-ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-config.json -s"
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s"
 
 # Verify CloudWatch agent status
 $CLOUDWATCH_STATUS = ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no ${REMOTE_USER}@${EC2_IP} "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a status -m ec2 2>/dev/null | grep -o '\"running\"' || echo 'stopped'"

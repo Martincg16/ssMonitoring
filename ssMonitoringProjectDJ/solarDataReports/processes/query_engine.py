@@ -89,7 +89,7 @@ class SolarDataQuery:
             
             # Loop through each system to get its production data
             for sistema in sistemas:
-                logger.debug(f"Processing system {sistema.dealname} (ID: {sistema.id})")
+                logger.info(f"Processing system {sistema.dealname} (ID: {sistema.id})")
                 
                 try:
                     # Get daily generation data for this system in the date range
@@ -219,7 +219,7 @@ class SolarDataQuery:
             
             # Loop through each inverter to get its production data
             for inversor in inversores:
-                logger.debug(f"Processing inverter ID: {inversor.id} from system {inversor.id_proyecto.dealname}")
+                logger.info(f"Processing inverter ID: {inversor.id} from system {inversor.id_proyecto.dealname}")
                 
                 try:
                     # Get daily generation data for this inverter in the date range
@@ -344,7 +344,7 @@ class SolarDataQuery:
             
             # Loop through each granular unit to get its production data
             for granular_unit in granular_data:
-                logger.debug(f"Processing granular device ID: {granular_unit.id} from system {granular_unit.id_proyecto.dealname}")
+                logger.info(f"Processing granular device ID: {granular_unit.id} from system {granular_unit.id_proyecto.dealname}")
                 
                 try:
                     # Get daily generation data for this granular unit in the date range
@@ -400,7 +400,7 @@ class SolarDataQuery:
             
             logger.info(f"Query completed successfully. Total energy across all granular devices: {total_energia_general} kWh")
             return result
-            
+
         except Exception as e:
             logger.error(f"Error in get_granular_production: {str(e)}")
             raise

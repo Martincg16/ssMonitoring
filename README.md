@@ -23,6 +23,9 @@ This project aims to provide a comprehensive solution for monitoring server stat
 
 # How to
 
+## open the ec2 app through a browser
+http://{ip address}:8000/admin/
+
 ## Creating a new project
 ### Huawei
 1. Look for the new project via Postman /stations via List plants

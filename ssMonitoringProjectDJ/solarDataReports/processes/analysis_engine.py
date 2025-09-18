@@ -52,7 +52,17 @@ class SolarDataAnalysis:
             # Initialize result
             result = {
                 "date": target_date.isoformat(),
-                "systems": []
+                "systems": {
+                    "zero": [],
+                    "null": [],
+                    "missing": []
+                },
+                "summary": {
+                    "zero_count": 0,
+                    "null_count": 0,
+                    "missing_count": 0,
+                    "total_systems_with_issues": 0
+                }
             }
             
             # Check each system's production
@@ -66,19 +76,27 @@ class SolarDataAnalysis:
                     # If no data for target date
                     if not daily_data:
                         logger.warning(f"No production data found for system {system_data['metadata']['nombre']} (ID: {system_id})")
-                        result["systems"].append({
+                        result["systems"]["missing"].append({
                             "id": system_data['metadata']['id'],
-                            "name": system_data['metadata']['nombre'],
-                            "type": "missing"
+                            "name": system_data['metadata']['nombre']
                         })
+                        result["summary"]["missing_count"] += 1
+                    # If data exists but is null
+                    elif daily_data[0]['energia_kwh'] is None:
+                        logger.warning(f"Null production value detected for system {system_data['metadata']['nombre']} (ID: {system_id})")
+                        result["systems"]["null"].append({
+                            "id": system_data['metadata']['id'],
+                            "name": system_data['metadata']['nombre']
+                        })
+                        result["summary"]["null_count"] += 1
                     # If data exists but shows zero production
                     elif daily_data[0]['energia_kwh'] == 0:
                         logger.warning(f"Zero production detected for system {system_data['metadata']['nombre']} (ID: {system_id})")
-                        result["systems"].append({
+                        result["systems"]["zero"].append({
                             "id": system_data['metadata']['id'],
-                            "name": system_data['metadata']['nombre'],
-                            "type": "zero"
+                            "name": system_data['metadata']['nombre']
                         })
+                        result["summary"]["zero_count"] += 1
                         
                 except Exception as e:
                     logger.error(f"Error analyzing system {system_data['metadata']['nombre']} (ID: {system_id}): {str(e)}")
@@ -123,7 +141,17 @@ class SolarDataAnalysis:
             # Initialize result
             result = {
                 "date": target_date.isoformat(),
-                "inverters": []
+                "inverters": {
+                    "zero": [],
+                    "null": [],
+                    "missing": []
+                },
+                "summary": {
+                    "zero_count": 0,
+                    "null_count": 0,
+                    "missing_count": 0,
+                    "total_inverters_with_issues": 0
+                }
             }
             
             # Check each inverter's production
@@ -137,19 +165,27 @@ class SolarDataAnalysis:
                     # If no data for target date
                     if not daily_data:
                         logger.warning(f"No production data found for inverter {inverter_id} in system {inverter_data['metadata']['proyecto']['nombre']}")
-                        result["inverters"].append({
+                        result["inverters"]["missing"].append({
                             "id": inverter_data['metadata']['id'],
-                            "name": inverter_data['metadata']['proyecto']['nombre'],
-                            "type": "missing"
+                            "name": inverter_data['metadata']['proyecto']['nombre']
                         })
+                        result["summary"]["missing_count"] += 1
+                    # If data exists but is null
+                    elif daily_data[0]['energia_kwh'] is None:
+                        logger.warning(f"Null production value detected for inverter {inverter_id} in system {inverter_data['metadata']['proyecto']['nombre']}")
+                        result["inverters"]["null"].append({
+                            "id": inverter_data['metadata']['id'],
+                            "name": inverter_data['metadata']['proyecto']['nombre']
+                        })
+                        result["summary"]["null_count"] += 1
                     # If data exists but shows zero production
                     elif daily_data[0]['energia_kwh'] == 0:
                         logger.warning(f"Zero production detected for inverter {inverter_id} in system {inverter_data['metadata']['proyecto']['nombre']}")
-                        result["inverters"].append({
+                        result["inverters"]["zero"].append({
                             "id": inverter_data['metadata']['id'],
-                            "name": inverter_data['metadata']['proyecto']['nombre'],
-                            "type": "zero"
+                            "name": inverter_data['metadata']['proyecto']['nombre']
                         })
+                        result["summary"]["zero_count"] += 1
                         
                 except Exception as e:
                     logger.error(f"Error analyzing inverter {inverter_id}: {str(e)}")
@@ -508,7 +544,174 @@ class SolarDataAnalysis:
             logger.error(f"Error in check_production_deviation_inverters: {str(e)}")
             raise
 
-    def check_production_deviation_granular(self, check_date=None, min_days_required=7, std_dev_threshold=1, days_to_compare=30):
+    def check_minimum_production_system_single_day(self, check_date=None):
+        """
+        Checks which systems are below their promised or minimum energy targets for a specific date.
+        If no date is provided, checks yesterday's data.
+        
+        Args:
+            check_date (date, optional): The date to check. Defaults to yesterday.
+            
+        Output structure:
+        {
+            "date": str,                  # ISO format date
+            "systems": {
+                "prometida": [            # List of systems below promised energy
+                    {
+                        "id": int,
+                        "name": str,
+                        "actual_kwh": float,
+                        "promised_daily_kwh": float
+                    },
+                    ...
+                ],
+                "minima": [              # List of systems below minimum energy
+                    {
+                        "id": int,
+                        "name": str,
+                        "actual_kwh": float,
+                        "minimum_daily_kwh": float
+                    },
+                    ...
+                ]
+            },
+            "summary": {
+                "total_systems_below_standards": int,
+                "prometida_count": int,
+                "minima_count": int,
+                "both_standards_count": int
+            }
+        }
+        """
+        # Get the date to check
+        target_date = check_date if check_date else date.today() - timedelta(days=1)
+        logger.info(f"Checking minimum production systems for date: {target_date}")
+        
+        try:
+            # Get production data for target date
+            production_data = self.query_engine.get_systems_production(target_date, target_date)
+            
+            # Initialize result
+            result = {
+                "date": target_date.isoformat(),
+                "systems": {
+                    "prometida": [],
+                    "minima": []
+                },
+                "summary": {
+                    "total_systems_below_standards": 0,
+                    "prometida_count": 0,
+                    "minima_count": 0,
+                    "both_standards_count": 0
+                }
+            }
+            
+            # Track systems failing both standards
+            systems_below_both = set()
+            
+            # Check each system's production
+            for system_id, system_data in production_data['sistemas'].items():
+                logger.info(f"Analyzing system {system_data['metadata']['nombre']} (ID: {system_id})")
+                
+                try:
+                    # Get target date's production data
+                    daily_data = system_data['produccion']['generacion_diaria']
+                    
+                    # Skip if no data for target date
+                    if not daily_data:
+                        logger.debug(f"No production data found for system {system_data['metadata']['nombre']} (ID: {system_id})")
+                        continue
+                    
+                    # Get actual production
+                    actual_kwh = daily_data[0]['energia_kwh']
+                    
+                    # Get promised and minimum targets
+                    promised_monthly = system_data['metadata'].get('energia_prometida_mes')
+                    minimum_monthly = system_data['metadata'].get('energia_minima_mes')
+                    
+                    # Calculate daily targets (divide by 30)
+                    try:
+                        promised_daily = float(promised_monthly) / 30 if promised_monthly else None
+                    except (ValueError, TypeError):
+                        promised_daily = None
+                        logger.warning(f"Invalid promised energy value for system {system_data['metadata']['nombre']} (ID: {system_id})")
+                    
+                    try:
+                        minimum_daily = float(minimum_monthly) / 30 if minimum_monthly else None
+                    except (ValueError, TypeError):
+                        minimum_daily = None
+                        logger.warning(f"Invalid minimum energy value for system {system_data['metadata']['nombre']} (ID: {system_id})")
+                    
+                    system_info = {
+                        "id": system_data['metadata']['id'],
+                        "name": system_data['metadata']['nombre'],
+                        "actual_kwh": actual_kwh
+                    }
+                    
+                    # Check against promised energy (treat null as failure)
+                    if promised_daily is None or actual_kwh < promised_daily:
+                        system_info_promised = system_info.copy()
+                        system_info_promised["promised_daily_kwh"] = promised_daily if promised_daily is not None else 0
+                        result["systems"]["prometida"].append(system_info_promised)
+                        result["summary"]["prometida_count"] += 1
+                        systems_below_both.add(system_id)
+                        
+                        if promised_daily is None:
+                            logger.warning(
+                                f"System {system_data['metadata']['nombre']} (ID: {system_id}) "
+                                f"has no promised energy target defined"
+                            )
+                        else:
+                            logger.warning(
+                                f"System {system_data['metadata']['nombre']} (ID: {system_id}) "
+                                f"below promised energy: {actual_kwh:.2f} kWh < {promised_daily:.2f} kWh"
+                            )
+                    
+                    # Check against minimum energy (treat null as failure)
+                    if minimum_daily is None or actual_kwh < minimum_daily:
+                        system_info_minimum = system_info.copy()
+                        system_info_minimum["minimum_daily_kwh"] = minimum_daily if minimum_daily is not None else 0
+                        result["systems"]["minima"].append(system_info_minimum)
+                        result["summary"]["minima_count"] += 1
+                        
+                        if system_id in systems_below_both:
+                            result["summary"]["both_standards_count"] += 1
+                        
+                        if minimum_daily is None:
+                            logger.warning(
+                                f"System {system_data['metadata']['nombre']} (ID: {system_id}) "
+                                f"has no minimum energy target defined"
+                            )
+                        else:
+                            logger.warning(
+                                f"System {system_data['metadata']['nombre']} (ID: {system_id}) "
+                                f"below minimum energy: {actual_kwh:.2f} kWh < {minimum_daily:.2f} kWh"
+                            )
+                        
+                except Exception as e:
+                    logger.error(f"Error analyzing system {system_data['metadata']['nombre']} (ID: {system_id}): {str(e)}")
+                    continue
+            
+            # Calculate total systems below standards
+            result["summary"]["total_systems_below_standards"] = len(set(
+                [item["id"] for item in result["systems"]["prometida"]] +
+                [item["id"] for item in result["systems"]["minima"]]
+            ))
+            
+            logger.info(
+                f"Minimum production check completed. "
+                f"Found {result['summary']['total_systems_below_standards']} systems below standards "
+                f"({result['summary']['prometida_count']} below promised, "
+                f"{result['summary']['minima_count']} below minimum, "
+                f"{result['summary']['both_standards_count']} below both)"
+            )
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in check_minimum_production_system_single_day: {str(e)}")
+            raise
+
+    def check_production_deviation_granular(self, check_date=None, min_days_required=7, std_dev_threshold=1, days_to_compare=30):  
         """
         Analyzes granular device production deviations by comparing a specific date against historical data.
         Only flags devices performing significantly below their historical average.

@@ -367,6 +367,9 @@ CRONJOBS = [
     # Run at 3:00 AM Colombian time (8:00 AM UTC = 3:00 AM COT)
     # Format: minute hour day month day_of_week
     ('0 8 * * *', 'django.core.management.call_command', ['collect_all_gen', '--skip-errors']),
+    
+    # Run daily report at 8:00 AM Colombian time (13:00 UTC = 8:00 AM COT)
+    ('0 13 * * *', 'django.core.management.call_command', ['generate_daily_report']),
 ]
 
 # TIMEZONE-AWARE CONFIGURATION

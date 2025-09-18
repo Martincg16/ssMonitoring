@@ -3,14 +3,14 @@
 ========================================================================================
 TO-DO
 
-- Conectar a APS y Hoymiles
+- Conectar a Hoymiles
 - Agregar capacidad de inversor en inversores
 - Agregar mínimos de producción / promesa al cliente
 
 - 0 es diferente de null
 
 DÓNDE QUEDÉ
-
+- Revisión de pdf + email.
 
 
 ========================================================================================

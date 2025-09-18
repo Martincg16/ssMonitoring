@@ -65,9 +65,18 @@ class SolarDataReporter:
             
             report_lines.append("EXECUTIVE SUMMARY:")
             report_lines.append(f"- Total {entity_type.lower()} with production issues: {total_issues}")
-            report_lines.append(f"- {entity_type} with zero production: {zero_count}")
-            report_lines.append(f"- {entity_type} with null production values: {null_count}")
-            report_lines.append(f"- {entity_type} with missing production data: {missing_count}")
+            if zero_count > 0:
+                report_lines.append(f"- {entity_type} with zero production: {zero_count}")
+                for item in entities.get('zero', []):
+                    report_lines.append(f"  • {item['name']}")
+            if null_count > 0:
+                report_lines.append(f"- {entity_type} with null production values: {null_count}")
+                for item in entities.get('null', []):
+                    report_lines.append(f"  • {item['name']}")
+            if missing_count > 0:
+                report_lines.append(f"- {entity_type} with missing production data: {missing_count}")
+                for item in entities.get('missing', []):
+                    report_lines.append(f"  • {item['name']}")
             report_lines.append("")
             
             # Detailed findings
@@ -99,7 +108,6 @@ class SolarDataReporter:
                         report_lines.append(f"• {item['name']} (ID: {item['id']})")
                     report_lines.append("")
             else:
-                report_lines.append("EXCELLENT NEWS!")
                 report_lines.append(f"All {entity_type.lower()} reported production data for {date_str}")
                 report_lines.append("")
             
@@ -170,9 +178,19 @@ class SolarDataReporter:
             
             report_lines.append("EXECUTIVE SUMMARY:")
             report_lines.append(f"- Total {entity_type.lower()} below quality standards: {total_below}")
-            report_lines.append(f"- {entity_type} below promised energy target: {prometida_count}")
-            report_lines.append(f"- {entity_type} below minimum energy requirement: {minima_count}")
-            report_lines.append(f"- {entity_type} below both standards: {both_count}")
+            if prometida_count > 0:
+                report_lines.append(f"- {entity_type} below promised energy target: {prometida_count}")
+                for item in entities.get('prometida', []):
+                    report_lines.append(f"  • {item['name']} (Actual: {item['actual_kwh']:.2f} kWh vs Target: {item['promised_daily_kwh']:.2f} kWh)")
+            if minima_count > 0:
+                report_lines.append(f"- {entity_type} below minimum energy requirement: {minima_count}")
+                for item in entities.get('minima', []):
+                    report_lines.append(f"  • {item['name']} (Actual: {item['actual_kwh']:.2f} kWh vs Minimum: {item['minimum_daily_kwh']:.2f} kWh)")
+            if both_count > 0:
+                report_lines.append(f"- {entity_type} below both standards: {both_count}")
+                both_items = [item for item in entities.get('prometida', []) if any(m['id'] == item['id'] for m in entities.get('minima', []))]
+                for item in both_items:
+                    report_lines.append(f"  • {item['name']}")
             report_lines.append("")
             
             # Detailed findings
@@ -202,7 +220,6 @@ class SolarDataReporter:
                         report_lines.append(f"  Actual: {actual:.2f} kWh | Minimum: {target:.2f} kWh")
                     report_lines.append("")
             else:
-                report_lines.append("EXCELLENT PERFORMANCE!")
                 report_lines.append(f"All {entity_type.lower()} met quality standards for {date_str}")
                 report_lines.append("")
             
@@ -265,12 +282,22 @@ class SolarDataReporter:
             
             # Summary section
             summary = result.get('summary', {})
-            total_deviations = summary.get('total_with_deviations', 0)
+            total_deviations = summary.get('systems_with_deviation', 0) if 'systems' in result else \
+                              summary.get('inverters_with_deviation', 0) if 'inverters' in result else \
+                              summary.get('devices_with_deviation', 0)
             days_analyzed = summary.get('days_analyzed', 'unknown')
             threshold = summary.get('std_dev_threshold', 'unknown')
             
             report_lines.append("EXECUTIVE SUMMARY:")
             report_lines.append(f"- {entity_type} with significant production deviations: {total_deviations}")
+            if total_deviations > 0:
+                for item in entities:
+                    name = item.get('name', 'Unknown')
+                    current_prod = item.get('current_kwh', 0)
+                    avg_prod = item.get('avg_kwh', 0)
+                    percent_diff = item.get('percent_diff', 0)
+                    report_lines.append(f"  • {name} ({percent_diff:.1f}% below average)")
+                    report_lines.append(f"    Current: {current_prod:.2f} kWh vs Average: {avg_prod:.2f} kWh")
             report_lines.append(f"- Analysis period: {days_analyzed} days")
             report_lines.append(f"- Deviation threshold: {threshold} standard deviations below average")
             report_lines.append("")
@@ -284,10 +311,10 @@ class SolarDataReporter:
                 for item in entities:
                     name = item.get('name', 'Unknown')
                     entity_id = item.get('id', 'Unknown')
-                    current_prod = item.get('current_production', 0)
-                    avg_prod = item.get('historical_average', 0)
-                    deviation = item.get('deviation_score', 0)
-                    percent_diff = item.get('percent_difference', 0)
+                    current_prod = item.get('current_kwh', 0)
+                    avg_prod = item.get('avg_kwh', 0)
+                    deviation = item.get('deviation', 0)
+                    percent_diff = item.get('percent_diff', 0)
                     
                     report_lines.append(f"• {name} (ID: {entity_id})")
                     report_lines.append(f"  Current Production: {current_prod:.2f} kWh")
@@ -296,7 +323,6 @@ class SolarDataReporter:
                     report_lines.append(f"  Performance Difference: {percent_diff:.1f}% below average")
                     report_lines.append("")
             else:
-                report_lines.append("NORMAL PERFORMANCE!")
                 report_lines.append(f"No {entity_type.lower()} showed significant deviations from historical performance on {date_str}")
                 report_lines.append("")
             

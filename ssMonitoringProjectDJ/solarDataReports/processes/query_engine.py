@@ -6,7 +6,7 @@ Handles database queries for solar system analysis and reporting
 import logging
 from django.db.models import Sum, Avg, Count
 from solarData.models import Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 # Initialize logger
 logger = logging.getLogger('solarDataReports.query_engine')
@@ -405,58 +405,47 @@ class SolarDataQuery:
             logger.error(f"Error in get_granular_production: {str(e)}")
             raise
 
-
-# Convenience function for flexible date ranges
-def get_last_n_days_production(n_days):
-    """
-    Get production data for the last n days
-    
-    Args:
-        n_days (int): Number of days to retrieve (1 = yesterday only, 7 = last week, etc.)
+    def get_last_n_days_production(self, n_days):
+        """
+        Get production data for the last n days
         
-    Returns:
-        dict: Structured data with system production information
-    """
-    from datetime import date, timedelta
-    
-    end_date = date.today() - timedelta(days=1)  # Yesterday
-    start_date = end_date - timedelta(days=n_days - 1)  # n days ago
-    
-    query = SolarDataQuery()
-    return query.get_systems_production(start_date, end_date)
-
-def get_inverters_last_n_days_production(n_days):
-    """
-    Get inverter production data for the last n days
-    
-    Args:
-        n_days (int): Number of days to retrieve (1 = yesterday only, 7 = last week, etc.)
+        Args:
+            n_days (int): Number of days to retrieve (1 = yesterday only, 7 = last week, etc.)
+            
+        Returns:
+            dict: Structured data with system production information
+        """
+        end_date = date.today() - timedelta(days=1)  # Yesterday
+        start_date = end_date - timedelta(days=n_days - 1)  # n days ago
         
-    Returns:
-        dict: Structured data with inverter production information (flat structure)
-    """
-    from datetime import date, timedelta
-    
-    end_date = date.today() - timedelta(days=1)  # Yesterday
-    start_date = end_date - timedelta(days=n_days - 1)  # n days ago
-    
-    query = SolarDataQuery()
-    return query.get_inverters_production(start_date, end_date)
+        return self.get_systems_production(start_date, end_date)
 
-def get_granular_last_n_days_production(n_days):
-    """
-    Get granular production data for the last n days
-    
-    Args:
-        n_days (int): Number of days to retrieve (1 = yesterday only, 7 = last week, etc.)
+    def get_inverters_last_n_days_production(self, n_days):
+        """
+        Get inverter production data for the last n days
         
-    Returns:
-        dict: Structured data with granular production information (MPPT/string level)
-    """
-    from datetime import date, timedelta
-    
-    end_date = date.today() - timedelta(days=1)  # Yesterday
-    start_date = end_date - timedelta(days=n_days - 1)  # n days ago
-    
-    query = SolarDataQuery()
-    return query.get_granular_production(start_date, end_date)
+        Args:
+            n_days (int): Number of days to retrieve (1 = yesterday only, 7 = last week, etc.)
+            
+        Returns:
+            dict: Structured data with inverter production information (flat structure)
+        """
+        end_date = date.today() - timedelta(days=1)  # Yesterday
+        start_date = end_date - timedelta(days=n_days - 1)  # n days ago
+        
+        return self.get_inverters_production(start_date, end_date)
+
+    def get_granular_last_n_days_production(self, n_days):
+        """
+        Get granular production data for the last n days
+        
+        Args:
+            n_days (int): Number of days to retrieve (1 = yesterday only, 7 = last week, etc.)
+            
+        Returns:
+            dict: Structured data with granular production information (MPPT/string level)
+        """
+        end_date = date.today() - timedelta(days=1)  # Yesterday
+        start_date = end_date - timedelta(days=n_days - 1)  # n days ago
+        
+        return self.get_granular_production(start_date, end_date)

@@ -161,7 +161,7 @@ class SolisFetcher:
                 {
                     "id": rec["id"],
                     "collectTime": rec["dateStr"],
-                    "PVYield": rec["energy"] if rec.get("energy") is not None else 0
+                    "PVYield": rec.get("energy")  # Allow None values
                 }
                 for rec in parsed.get("data", {}).get("records", [])
             ]
@@ -249,7 +249,7 @@ class SolisFetcher:
             result = {
                 'identificador_inversor': f'{inverter_id}',
                 'collectTime': formatted_date,
-                'PVYield': float(etoday_value) if etoday_value is not None else 0.0  # Convert None to 0
+                    'PVYield': float(etoday_value) if etoday_value is not None else None  # Convert None to 0
             }
             
             logger.info(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| Solis inverter data fetched successfully for inverter {inverter_id}: PVYield = {result['PVYield']} kWh")

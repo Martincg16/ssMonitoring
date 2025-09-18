@@ -149,7 +149,7 @@ class HuaweiFetcher:
                 result.append({
                     'stationCode': station_code,
                     'collectTime': collect_time,
-                    'PVYield': 0 if pvyield in (None, "None") else pvyield
+                    'PVYield': None if pvyield in (None, "None") else pvyield
                 })
         logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_sistema_dia| Successfully fetched Huawei system generation data for batch {batch_number}: {len(result)} systems")
         return result
@@ -243,7 +243,7 @@ class HuaweiFetcher:
             result.append({
                 'identificador_inversor': our_id,
                 'collectTime': collect_time,
-                'product_power': 0 if product_power in (None, "None") else product_power,
+                'product_power': None if product_power in (None, "None") else product_power,
             })
         logger.info(f"|HuaweiFetcher|fetch_huawei_generacion_inversor_dia| Successfully fetched Huawei inverter generation data for dev_type_id {dev_type_id}, batch {batch_number}: {len(result)} inverters")
         return result
@@ -366,17 +366,17 @@ class HuaweiFetcher:
             ]
             mppt_results = {}  # Prepare a dictionary to store the calculated energy for each MPPT
             for key in mppt_keys:  # For each MPPT key
-                first_val = first.get(key) or 0  # Get the MPPT value at the start of the day (default 0 if missing)
-                last_val = last.get(key) or 0   # Get the MPPT value at the end of the day (default 0 if missing)
-                # Only include if not both zero
-                if not (first_val == 0 and last_val == 0):  # Ignore this MPPT if both values are zero
+                first_val = first.get(key)  # Get the MPPT value at the start of the day
+                last_val = last.get(key)   # Get the MPPT value at the end of the day
+                # Only include if we have both values
+                if first_val is not None and last_val is not None:  # Only process if we have both values
                     # Calculate daily generation
                     daily_generation = round(last_val - first_val, 2)
                     
                     # Check for negative values (API data inconsistency/counter reset)
                     if daily_generation < 0:
-                        logger.error(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| NEGATIVE GENERATION DETECTED - DevID: {dev_id}, Serial: {serial_map.get(dev_id, dev_id)}, MPPT: {key}, First: {first_val}, Last: {last_val}, Calculated: {daily_generation} kWh. Setting to 0.")
-                        daily_generation = 0  # Set to 0 instead of negative value
+                        logger.error(f"|HuaweiFetcher|fetch_huawei_generacion_granular_dia| NEGATIVE GENERATION DETECTED - DevID: {dev_id}, Serial: {serial_map.get(dev_id, dev_id)}, MPPT: {key}, First: {first_val}, Last: {last_val}, Calculated: {daily_generation} kWh. Setting to None.")
+                        daily_generation = None  # Set to None for invalid data
                     
                     mppt_results[key] = daily_generation  # Store the validated energy produced
             # Use NE=... serial as key if found, else dev_id

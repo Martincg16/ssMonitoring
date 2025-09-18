@@ -52,7 +52,7 @@ class Proyecto(models.Model):
 
 class GeneracionEnergiaDiaria(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
-    energia_generada_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía generada en el día')
+    energia_generada_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía generada en el día', null=True)
     fecha_generacion_dia = models.DateField(verbose_name= 'fecha de generación')
 
     class Meta:
@@ -73,7 +73,7 @@ class Inversor(models.Model):
 class GeneracionInversorDiaria(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
     id_inversor = models.ForeignKey(Inversor, on_delete=models.CASCADE)
-    energia_generada_inversor_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía por inversor generada en el día')
+    energia_generada_inversor_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía por inversor generada en el día', null=True)
     fecha_generacion_inversor_dia = models.DateField(verbose_name= 'fecha de generación por inversor')
 
     class Meta:
@@ -98,7 +98,7 @@ class GeneracionGranularDiaria(models.Model):
     id_proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, verbose_name= 'nombre del proyecto')
     id_inversor = models.ForeignKey(Inversor, on_delete=models.CASCADE)
     id_granular = models.ForeignKey(Granular, on_delete=models.CASCADE, default="")
-    energia_generada_granular_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía por mppt generada en el día')
+    energia_generada_granular_dia = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía por mppt generada en el día', null=True)
     fecha_generacion_granular_dia = models.DateField(verbose_name= 'fecha de generación por mppt')
 
     def __str__(self):

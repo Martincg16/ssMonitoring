@@ -233,12 +233,12 @@ class SolisFetcher:
                 return {
                     'identificador_inversor': f'{inverter_id}',
                     'collectTime': datetime.strptime(collect_time, "%Y-%m-%d").strftime("%d-%m-%Y"),
-                    'PVYield': 0.0
+                    'PVYield': None
                 }
             
             # Get the last entry (latest time)
             last_entry = data_array[-1]
-            etoday_value = last_entry.get("eToday", 0)  # Default to 0 if no eToday value
+            etoday_value = last_entry.get("eToday")  # Allow None values
             
             # Extract date from the JSON response (timeStr format: "2025-06-18 18:35:41")
             time_str = last_entry.get("timeStr", "")

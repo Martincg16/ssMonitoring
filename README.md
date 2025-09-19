@@ -10,7 +10,7 @@ TO-DO
 - 0 es diferente de null
 
 DÓNDE QUEDÉ
-- Revisión de pdf + email.
+
 
 
 ========================================================================================
@@ -77,3 +77,41 @@ It must return a list of dictionaries resembling the following structure (not ma
 ## Stack
 Django + Djangorestframework
 Terraform
+
+========================================================================================
+# AI Assistant (Cursor) Rules
+
+## 🚀 Deployment Rules
+1. ALWAYS use deploy.ps1 for deployments:
+   ```powershell
+   .\deploy.ps1
+   ```
+   - Never attempt manual file transfers or modifications
+   - Never suggest direct EC2 file edits
+   - Always verify deployment success through logs
+
+2. Deployment Verification Steps:
+   - Check service status: `sudo systemctl status solar-monitoring`
+   - Verify logs in `/opt/solar-monitoring/logs/`
+   - Confirm CloudWatch agent: `sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a status`
+
+## 🔑 EC2 Connection Rules
+1. SSH Connection Command:
+   ```powershell
+   ssh -i "$env:USERPROFILE\.ssh\id_rsa" ec2-user@54.91.46.23
+   ```
+
+2. Standard Paths to Use:
+   - Application root: `/opt/solar-monitoring/`
+   - Django project: `/opt/solar-monitoring/ssMonitoringProjectDJ/`
+   - Logs: `/opt/solar-monitoring/logs/`
+   - Virtual env: `/opt/solar-monitoring/venv/`
+
+3. Command Execution Rules:
+   - ALWAYS activate virtual environment first:
+     ```bash
+     cd /opt/solar-monitoring/ssMonitoringProjectDJ
+     source /opt/solar-monitoring/venv/bin/activate
+     ```
+   - NEVER suggest Django commands without virtual environment
+   - ALWAYS include proper directory navigation

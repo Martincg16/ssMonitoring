@@ -14,7 +14,7 @@ logger = logging.getLogger('management_commands')
 
 
 class Command(BaseCommand):
-    help = 'Collect all data from Solis and Huawei systems for a specific date'
+    help = 'Collect all data from Solis, Huawei, and Hoymiles systems for a specific date'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -66,6 +66,10 @@ class Command(BaseCommand):
             ('huawei_system_gen', 'Huawei System Generation'),
             ('huawei_inverter_gen', 'Huawei Inverter Generation'),
             ('huawei_granular_gen', 'Huawei Granular Generation'),
+            
+            # Hoymiles commands
+            ('hoymiles_system_gen', 'Hoymiles System Generation'),
+            ('hoymiles_inverter_granular_gen', 'Hoymiles Inverter & Granular Generation'),
         ]
         
         logger.info(f"Starting collection of all data for {target_date} at {timezone.now()}")

@@ -209,6 +209,30 @@ LOGGING = {
             'formatter': 'fetcher_format',
         },
         
+        # HOYMILES FETCHER HANDLER: Logs for Hoymiles operations
+        'hoymiles_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'hoymiles_fetcher.log',
+            'formatter': 'fetcher_format',
+        },
+        
+        # HOYMILES STORE HANDLER: Logs for Hoymiles CRUD operations
+        'hoymiles_store_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'hoymiles_store.log',
+            'formatter': 'fetcher_format',
+        },
+        
+        # HOYMILES NEW SYSTEM HANDLER: Logs for Hoymiles registration operations
+        'hoymiles_newsystem_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'hoymiles_newsystem.log',
+            'formatter': 'fetcher_format',
+        },
+        
         # HUAWEI NEW SYSTEM HANDLER: Logs for Huawei registration operations
         'huawei_newsystem_file': {
             'level': 'INFO',
@@ -298,6 +322,27 @@ LOGGING = {
         # Logger for Solis CRUD operations
         'solis_store': {
             'handlers': ['solis_store_file', 'console', 'email_alert'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        
+        # Logger for Hoymiles fetcher operations
+        'hoymiles_fetcher': {
+            'handlers': ['hoymiles_file', 'console', 'email_alert'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        
+        # Logger for Hoymiles CRUD operations
+        'hoymiles_store': {
+            'handlers': ['hoymiles_store_file', 'console', 'email_alert'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        
+        # Logger for Hoymiles registration operations
+        'hoymiles_newsystem': {
+            'handlers': ['hoymiles_newsystem_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },

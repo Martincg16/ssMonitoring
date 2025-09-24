@@ -57,6 +57,12 @@ inverters = register_and_fetch_huawei_history(token, station_code)
 2. Add the plan manually to the database proyecto. Can be using pgAdmin or the Shell or DjangoAdmin
 3. In the shell run
 
+### Hoymiles
+1. Make sure to follow instructions to run local to db
+2. python manage.py shell
+3. >>> from solarDataNewSystem.register.hoymilesRegister import register_hoymiles_project
+   >>> register_hoymiles_project('id_project')
+
 
 ## solarDataFetch Outputs
 Solar data fetch will bring all the corresponsing plants from the inverter brand. In most occations working with batches.

@@ -11,8 +11,6 @@ TO-DO
 
 DÓNDE QUEDÉ
 
-
-
 ========================================================================================
 
 A monitoring system for tracking and managing server status.
@@ -77,6 +75,15 @@ It must return a list of dictionaries resembling the following structure (not ma
 ## Stack
 Django + Djangorestframework
 Terraform
+
+# Run local to use db
+
+1. create the ssh tunnel
+ssh -i "$env:USERPROFILE\.ssh\id_rsa" -L 5433:ss-monitoring-db.cub240qeyxgi.us-east-1.rds.amazonaws.com:5432 -N ec2-user@54.91.46.23
+
+2. set the environment 
+$env:DB_HOST="localhost"; $env:DB_PORT="5433"; $env:DB_NAME=REAL DB NAME; $env:DB_USER=REAL USER; $env:DB_PASSWORD=REAL PASSOWRD
+python manage.py shell
 
 ========================================================================================
 # AI Assistant (Cursor) Rules

@@ -72,6 +72,48 @@
             "log_stream_name": "query_engine",
             "timezone": "Local",
             "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/hoymiles_fetcher.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataFetch",
+            "log_stream_name": "Hoymiles",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/hoymiles_store.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataStore",
+            "log_stream_name": "Hoymiles",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/hoymiles_newsystem.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataNewSystem",
+            "log_stream_name": "Hoymiles",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/email_sender_engine.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataReports",
+            "log_stream_name": "email_sender_engine",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/pdf_generator_engine.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataReports",
+            "log_stream_name": "pdf_generator_engine",
+            "timezone": "Local",
+            "retention_in_days": 14
+          },
+          {
+            "file_path": "/opt/solar-monitoring/logs/report_engine.log",
+            "log_group_name": "/aws/ssmonitoring/django/solarDataReports",
+            "log_stream_name": "report_engine",
+            "timezone": "Local",
+            "retention_in_days": 14
           }
         ]
       }

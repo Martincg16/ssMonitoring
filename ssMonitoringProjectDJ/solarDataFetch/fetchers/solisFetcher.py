@@ -5,6 +5,7 @@ import base64
 import hmac
 import pytz
 import logging
+import os
 from datetime import datetime, timezone
 from solarData.models import Proyecto
 
@@ -14,7 +15,15 @@ logger = logging.getLogger('solis_fetcher')
 class SolisFetcher:
     url = "https://www.soliscloud.com:13333"
     key_id="1300386381677289904"
-    key_secret="313d4528cec14085b68a33608fb401c5"
+    
+    def __init__(self):
+        """Initialize the Solis fetcher with configuration from environment variables."""
+        self.key_secret = os.getenv('SOLIS_API_SECRET')
+        
+        if not self.key_secret:
+            raise ValueError("SOLIS_API_SECRET environment variable is required")
+        
+        logger.info("|SolisFetcher|__init__| Solis fetcher initialized")
 
     def process_data_to_base64_md5(self, body):
         """

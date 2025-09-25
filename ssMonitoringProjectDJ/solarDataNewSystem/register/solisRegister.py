@@ -4,6 +4,7 @@ import hashlib
 import base64
 import json
 import hmac
+import os
 
 from solarData.models import Proyecto, Inversor, MarcasInversores
 from datetime import date
@@ -14,7 +15,15 @@ logger = logging.getLogger('solis_newsystem')
 class SolisRegister:
     url = "https://www.soliscloud.com:13333"
     key_id="1300386381677289904"
-    key_secret="313d4528cec14085b68a33608fb401c5"
+    
+    def __init__(self):
+        """Initialize the Solis register with configuration from environment variables."""
+        self.key_secret = os.getenv('SOLIS_API_SECRET')
+        
+        if not self.key_secret:
+            raise ValueError("SOLIS_API_SECRET environment variable is required")
+        
+        logger.info("|SolisRegister|__init__| Solis register initialized")
 
     def process_data_to_base64_md5(self, body):
         """

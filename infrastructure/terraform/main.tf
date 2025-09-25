@@ -272,6 +272,50 @@ resource "aws_cloudwatch_log_group" "reports_logs" {
   }
 }
 
+# CloudWatch Log Group for Solar Data Fetch
+resource "aws_cloudwatch_log_group" "fetch_logs" {
+  name              = "/aws/ssmonitoring/django/solarDataFetch"
+  retention_in_days = 14
+
+  tags = {
+    Name        = "ss-monitoring-fetch-logs"
+    Environment = "dev"
+  }
+}
+
+# CloudWatch Log Group for Solar Data Store
+resource "aws_cloudwatch_log_group" "store_logs" {
+  name              = "/aws/ssmonitoring/django/solarDataStore"
+  retention_in_days = 14
+
+  tags = {
+    Name        = "ss-monitoring-store-logs"
+    Environment = "dev"
+  }
+}
+
+# CloudWatch Log Group for Solar Data New System
+resource "aws_cloudwatch_log_group" "newsystem_logs" {
+  name              = "/aws/ssmonitoring/django/solarDataNewSystem"
+  retention_in_days = 14
+
+  tags = {
+    Name        = "ss-monitoring-newsystem-logs"
+    Environment = "dev"
+  }
+}
+
+# CloudWatch Log Group for Commands
+resource "aws_cloudwatch_log_group" "commands_logs" {
+  name              = "/aws/ssmonitoring/django/Commands"
+  retention_in_days = 14
+
+  tags = {
+    Name        = "ss-monitoring-commands-logs"
+    Environment = "dev"
+  }
+}
+
 # EC2 Instance (Free Tier)
 resource "aws_instance" "app" {
   ami                    = data.aws_ami.amazon_linux_2023.id
@@ -315,14 +359,32 @@ touch /opt/solar-monitoring/logs/django.log
 touch /opt/solar-monitoring/logs/management_commands.log
 touch /opt/solar-monitoring/logs/analysis_engine.log
 touch /opt/solar-monitoring/logs/query_engine.log
+touch /opt/solar-monitoring/logs/hoymiles_fetcher.log
+touch /opt/solar-monitoring/logs/hoymiles_store.log
+touch /opt/solar-monitoring/logs/hoymiles_newsystem.log
+touch /opt/solar-monitoring/logs/email_sender_engine.log
+touch /opt/solar-monitoring/logs/pdf_generator_engine.log
+touch /opt/solar-monitoring/logs/report_engine.log
 chown ec2-user:ec2-user /opt/solar-monitoring/logs/django.log
 chown ec2-user:ec2-user /opt/solar-monitoring/logs/management_commands.log
 chown ec2-user:ec2-user /opt/solar-monitoring/logs/analysis_engine.log
 chown ec2-user:ec2-user /opt/solar-monitoring/logs/query_engine.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/hoymiles_fetcher.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/hoymiles_store.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/hoymiles_newsystem.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/email_sender_engine.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/pdf_generator_engine.log
+chown ec2-user:ec2-user /opt/solar-monitoring/logs/report_engine.log
 chmod 664 /opt/solar-monitoring/logs/django.log
 chmod 664 /opt/solar-monitoring/logs/management_commands.log
 chmod 664 /opt/solar-monitoring/logs/analysis_engine.log
 chmod 664 /opt/solar-monitoring/logs/query_engine.log
+chmod 664 /opt/solar-monitoring/logs/hoymiles_fetcher.log
+chmod 664 /opt/solar-monitoring/logs/hoymiles_store.log
+chmod 664 /opt/solar-monitoring/logs/hoymiles_newsystem.log
+chmod 664 /opt/solar-monitoring/logs/email_sender_engine.log
+chmod 664 /opt/solar-monitoring/logs/pdf_generator_engine.log
+chmod 664 /opt/solar-monitoring/logs/report_engine.log
 
 # Create CloudWatch agent config
 echo "Configuring CloudWatch Agent..."

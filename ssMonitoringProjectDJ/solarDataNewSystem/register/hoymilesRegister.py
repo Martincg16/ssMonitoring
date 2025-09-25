@@ -1,5 +1,6 @@
 import requests
 import logging
+import os
 from datetime import datetime, timedelta
 from solarData.models import Proyecto, Inversor, MarcasInversores, Granular
 
@@ -13,11 +14,15 @@ class HoymilesRegister:
     
     # API Configuration
     base_url = "https://wapi.hoymiles.com"
-    api_key = "1.1DCEhvmllSRNl69JJGLFG8OvHpUXXjhjZ"
     timeout = 30
     
     def __init__(self):
         """Initialize HoymilesRegister instance."""
+        self.api_key = os.getenv('HOYMILES_API_KEY')
+        
+        if not self.api_key:
+            raise ValueError("HOYMILES_API_KEY environment variable is required")
+        
         logger.info("|HoymilesRegister|__init__| Hoymiles register initialized")
 
     def hoymiles_register_new_project(self, station_code):

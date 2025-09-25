@@ -35,8 +35,8 @@ def insert_hoymiles_generacion_sistema_dia(data):
         pvyield = entry.get('PVYield')
         collect_time = entry.get('collectTime')
         
-        if not (station_code and pvyield is not None and collect_time):
-            logger.warning(f"|HoymilesStore|insert_hoymiles_generacion_sistema_dia| Incomplete entry skipped: {entry}")
+        if not (station_code and collect_time):
+            logger.warning(f"|HoymilesStore|insert_hoymiles_generacion_sistema_dia| Incomplete entry skipped (missing station_code or collect_time): {entry}")
             skipped_entries += 1
             continue
         
@@ -119,22 +119,21 @@ def insert_hoymiles_generacion_inversor_granular_dia(data, fecha_generacion):
     
     proyecto = inversor.id_proyecto
     
-    # Insert inverter generation data
-    if pvyield is not None:
-        try:
-            obj, created = GeneracionInversorDiaria.objects.update_or_create(
-                id_proyecto=proyecto,
-                id_inversor=inversor,
-                fecha_generacion_inversor_dia=date_obj,
-                defaults={'energia_generada_inversor_dia': pvyield}
-            )
-            
-            if created:
-                logger.info(f"|HoymilesStore|insert_hoymiles_generacion_inversor_granular_dia| Created new GeneracionInversorDiaria for {inverter_sn} on {date_obj}: {pvyield} kWh")
-            else:
-                logger.info(f"|HoymilesStore|insert_hoymiles_generacion_inversor_granular_dia| Updated GeneracionInversorDiaria for {inverter_sn} on {date_obj}: {pvyield} kWh")
-        except Exception as e:
-            logger.error(f"|HoymilesStore|insert_hoymiles_generacion_inversor_granular_dia| Error inserting inverter data: {e}")
+    # Insert inverter generation data (always insert, even with None or 0 values)
+    try:
+        obj, created = GeneracionInversorDiaria.objects.update_or_create(
+            id_proyecto=proyecto,
+            id_inversor=inversor,
+            fecha_generacion_inversor_dia=date_obj,
+            defaults={'energia_generada_inversor_dia': pvyield}
+        )
+        
+        if created:
+            logger.info(f"|HoymilesStore|insert_hoymiles_generacion_inversor_granular_dia| Created new GeneracionInversorDiaria for {inverter_sn} on {date_obj}: {pvyield} kWh")
+        else:
+            logger.info(f"|HoymilesStore|insert_hoymiles_generacion_inversor_granular_dia| Updated GeneracionInversorDiaria for {inverter_sn} on {date_obj}: {pvyield} kWh")
+    except Exception as e:
+        logger.error(f"|HoymilesStore|insert_hoymiles_generacion_inversor_granular_dia| Error inserting inverter data: {e}")
     
     # Insert granular data for each channel (following Huawei pattern)
     successful_inserts = 0

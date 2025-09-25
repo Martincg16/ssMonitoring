@@ -294,6 +294,30 @@ LOGGING = {
             'filename': BASE_DIR.parent / 'logs' / 'query_engine.log',
             'formatter': 'analysis_format',
         },
+
+        # EMAIL SENDER ENGINE HANDLER: Logs for email sending operations
+        'email_sender_engine_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'email_sender_engine.log',
+            'formatter': 'analysis_format',
+        },
+
+        # PDF GENERATOR ENGINE HANDLER: Logs for PDF generation operations
+        'pdf_generator_engine_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'pdf_generator_engine.log',
+            'formatter': 'analysis_format',
+        },
+
+        # REPORT ENGINE HANDLER: Logs for report generation operations
+        'report_engine_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'report_engine.log',
+            'formatter': 'analysis_format',
+        },
     },
     
     # LOGGERS: Define which code can log and how
@@ -385,6 +409,27 @@ LOGGING = {
         # Logger for query engine
         'solarDataReports.query_engine': {
             'handlers': ['query_engine_file', 'console', 'email_alert'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Logger for email sender engine operations
+        'solarDataReports.email_sender': {
+            'handlers': ['email_sender_engine_file', 'console', 'email_alert'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Logger for PDF generator engine operations
+        'solarDataReports.pdf_generator': {
+            'handlers': ['pdf_generator_engine_file', 'console', 'email_alert'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Logger for report engine operations
+        'solarDataReports.report_engine': {
+            'handlers': ['report_engine_file', 'console', 'email_alert'],
             'level': 'INFO',
             'propagate': False,
         },

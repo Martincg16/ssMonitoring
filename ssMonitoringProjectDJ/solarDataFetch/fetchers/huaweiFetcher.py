@@ -2,6 +2,7 @@ import requests
 import logging
 import traceback
 import json
+import os
 from datetime import datetime
 from django.utils import timezone as django_timezone
 from zoneinfo import ZoneInfo
@@ -13,10 +14,21 @@ logger = logging.getLogger('huawei_fetcher')
 
 class HuaweiFetcher:
     BASE_URL = "https://la5.fusionsolar.huawei.com/thirdData/"
-    LOGIN_BODY = {
-        "userName": "api_rocasol",
-        "systemCode": "api_rsol1"
-    }
+    
+    def __init__(self):
+        """Initialize the Huawei fetcher with configuration from environment variables."""
+        username = os.getenv('HUAWEI_API_USERNAME')
+        system_code = os.getenv('HUAWEI_API_SYSTEM_CODE')
+        
+        if not username or not system_code:
+            raise ValueError("HUAWEI_API_USERNAME and HUAWEI_API_SYSTEM_CODE environment variables are required")
+        
+        self.LOGIN_BODY = {
+            "userName": username,
+            "systemCode": system_code
+        }
+        
+        logger.info("|HuaweiFetcher|__init__| Huawei fetcher initialized")
 
     def login(self):
         login_url = self.BASE_URL + "login"

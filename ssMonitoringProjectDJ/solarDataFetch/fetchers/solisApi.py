@@ -4,10 +4,11 @@ import hashlib
 import base64
 import json
 import hmac
+import os
 
 url = "https://www.soliscloud.com:13333"
 key_id="1300386381677289904"
-key_secret="313d4528cec14085b68a33608fb401c5"
+key_secret = os.getenv('SOLIS_API_SECRET', "313d4528cec14085b68a33608fb401c5")  # Fallback for compatibility
 #key_secret="6680182547"
 
 def process_data_to_base64_md5(body):

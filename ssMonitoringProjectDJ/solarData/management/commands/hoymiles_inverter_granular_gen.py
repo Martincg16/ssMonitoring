@@ -82,17 +82,28 @@ class Command(BaseCommand):
                     plant_id, inverter_sn, collect_time
                 )
                 
+                # Always process the data - the fetcher returns valid structure even with null/zero values
                 if inverter_data:
                     # Insert data into database
                     insert_hoymiles_generacion_inversor_granular_dia(inverter_data, collect_time)
                     
                     successful_inverters += 1
-                    logger.info(f"|HoymilesInverterGranularGen|handle| Successfully processed inverter {inverter_sn}")
-                    self.stdout.write(self.style.SUCCESS(f'✓ {project_name} - {inverter_sn}: Data processed successfully'))
+                    
+                    # Check if data contains meaningful values
+                    pvyield = inverter_data.get('PVYield', 0)
+                    has_channel_data = any(inverter_data.get(f'channel{i}') is not None for i in range(1, 5))
+                    
+                    if pvyield == 0 and not has_channel_data:
+                        logger.info(f"|HoymilesInverterGranularGen|handle| Successfully processed inverter {inverter_sn} (no energy generation)")
+                        self.stdout.write(self.style.WARNING(f'⚠ {project_name} - {inverter_sn}: Data processed (no generation)'))
+                    else:
+                        logger.info(f"|HoymilesInverterGranularGen|handle| Successfully processed inverter {inverter_sn}")
+                        self.stdout.write(self.style.SUCCESS(f'✓ {project_name} - {inverter_sn}: Data processed successfully'))
                 else:
+                    # This should not happen anymore since fetcher always returns data
                     failed_inverters += 1
                     logger.warning(f"|HoymilesInverterGranularGen|handle| No data returned for inverter {inverter_sn}")
-                    self.stdout.write(self.style.WARNING(f'⚠ {project_name} - {inverter_sn}: No data returned'))
+                    self.stdout.write(self.style.ERROR(f'✗ {project_name} - {inverter_sn}: No data returned'))
                     
             except RuntimeError as e:
                 failed_inverters += 1

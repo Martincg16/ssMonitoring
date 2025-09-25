@@ -71,15 +71,24 @@ class Command(BaseCommand):
                 # Fetch data for this specific station
                 system_data = fetcher.fetch_hoymiles_generacion_sistema_dia(station_id, collect_time)
                 
+                # Always process the data - even if PVYield is None, we want to record it
                 if system_data:
                     all_system_data.extend(system_data)
                     successful_projects += 1
-                    logger.info(f"|HoymilesSystemGen|handle| Successfully fetched data for station {station_id}: {len(system_data)} entries")
-                    self.stdout.write(self.style.SUCCESS(f'✓ {project.dealname}: {len(system_data)} entries'))
+                    
+                    # Check if data contains null values
+                    has_null_data = any(entry.get('PVYield') is None for entry in system_data)
+                    if has_null_data:
+                        logger.info(f"|HoymilesSystemGen|handle| Successfully fetched data for station {station_id}: {len(system_data)} entries (with null values)")
+                        self.stdout.write(self.style.WARNING(f'⚠ {project.dealname}: {len(system_data)} entries (null data recorded)'))
+                    else:
+                        logger.info(f"|HoymilesSystemGen|handle| Successfully fetched data for station {station_id}: {len(system_data)} entries")
+                        self.stdout.write(self.style.SUCCESS(f'✓ {project.dealname}: {len(system_data)} entries'))
                 else:
+                    # This should not happen anymore since fetcher always returns data
                     failed_projects += 1
                     logger.warning(f"|HoymilesSystemGen|handle| No data returned for station {station_id}")
-                    self.stdout.write(self.style.WARNING(f'⚠ {project.dealname}: No data returned'))
+                    self.stdout.write(self.style.ERROR(f'✗ {project.dealname}: No data returned'))
                     
             except RuntimeError as e:
                 failed_projects += 1

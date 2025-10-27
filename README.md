@@ -3,9 +3,9 @@
 ========================================================================================
 TO-DO
 
-- Conectar a Hoymiles
 - Agregar capacidad de inversor en inversores
-- Agregar mínimos de producción / promesa al cliente
+- Agregar 0/null en hoymiles
+- Agregar reporte de "últimos 15 días de energía"
 
 - 0 es diferente de null
 

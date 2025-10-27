@@ -1,11 +1,71 @@
 from django.contrib import admin
 
-from solarData.models import Departamento, Ciudad, MarcasInversores, Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
+from solarData.models import Cliente, Departamento, Ciudad, MarcasInversores, Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
+
+@admin.register(Cliente)
+class ClienteAdmin(admin.ModelAdmin):
+    list_display = (
+        'id_colombia', 
+        'get_nombre_completo', 
+        'tipo_de_persona_natural_o_juridica', 
+        'company',
+        'email', 
+        'phone',
+        'fecha_creacion'
+    )
+    list_filter = ('tipo_de_persona_natural_o_juridica', 'fecha_creacion')
+    search_fields = (
+        'firstname', 
+        'lastname', 
+        'company', 
+        'id_colombia', 
+        'email',
+        'phone'
+    )
+    readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
+    
+    fieldsets = (
+        ('Información Personal/Empresarial', {
+            'fields': (
+                'tipo_de_persona_natural_o_juridica',
+                'firstname',
+                'lastname',
+                'company',
+                'id_colombia'
+            )
+        }),
+        ('Información de Contacto', {
+            'fields': ('email', 'phone')
+        }),
+        ('Contacto de Cobranza', {
+            'fields': (
+                'firstname_cobranza',
+                'lastname_cobranza',
+                'email_cobranza',
+                'phone_cobranza'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('IDs de Sistemas Externos', {
+            'fields': ('id_hs', 'id_bubble'),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('fecha_creacion', 'fecha_actualizacion'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_nombre_completo(self, obj):
+        if obj.tipo_de_persona_natural_o_juridica == 'Jurídica' and obj.company:
+            return obj.company
+        return f'{obj.firstname} {obj.lastname}'
+    get_nombre_completo.short_description = 'Nombre/Empresa'
 
 @admin.register(Proyecto)
 class ProyectoAdmin(admin.ModelAdmin):
-    list_display = ('dealname', 'get_ciudad', 'get_departamento', 'energia_prometida_mes', 'energia_minima_mes', 'fecha_entrada_en_operacion', 'restriccion_de_autoconsumo')
-    search_fields = ('dealname', 'id_ciudad__nombre_ciudad', 'id_ciudad__id_departamento__nombre_departamento')
+    list_display = ('dealname', 'id_cliente', 'get_ciudad', 'get_departamento', 'energia_prometida_mes', 'energia_minima_mes', 'fecha_entrada_en_operacion', 'restriccion_de_autoconsumo')
+    search_fields = ('dealname', 'id_ciudad__nombre_ciudad', 'id_ciudad__id_departamento__nombre_departamento', 'id_cliente__firstname', 'id_cliente__lastname', 'id_cliente__company')
 
     def get_ciudad(self, obj):
         return obj.id_ciudad.nombre_ciudad if obj.id_ciudad else 'N/A'

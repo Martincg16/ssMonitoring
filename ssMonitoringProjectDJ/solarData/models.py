@@ -1,4 +1,123 @@
 from django.db import models
+from django.core.validators import RegexValidator
+
+# Phone validator for Colombian mobile phone numbers (format: +573001234567)
+phone_validator = RegexValidator(
+    regex=r'^\+573\d{9}$',
+    message='Ingrese un número de teléfono colombiano válido (formato: +573001234567)'
+)
+
+class Cliente(models.Model):
+    TIPO_PERSONA_CHOICES = [
+        ('Natural', 'Natural'),
+        ('Jurídica', 'Jurídica'),
+    ]
+    
+    # Personal/Company Information
+    firstname = models.CharField(
+        max_length=100, 
+        verbose_name='nombre'
+    )
+    lastname = models.CharField(
+        max_length=100, 
+        verbose_name='apellido'
+    )
+    tipo_de_persona_natural_o_juridica = models.CharField(
+        max_length=20,
+        choices=TIPO_PERSONA_CHOICES,
+        verbose_name='tipo de persona'
+    )
+    company = models.CharField(
+        max_length=255,
+        verbose_name='empresa',
+        null=True,
+        blank=True,
+        help_text='Solo para personas jurídicas'
+    )
+    id_colombia = models.CharField(
+        max_length=50,
+        verbose_name='cédula/NIT',
+        unique=True,
+        help_text='Cédula de ciudadanía o NIT'
+    )
+    
+    # Contact Information
+    email = models.EmailField(
+        verbose_name='correo electrónico',
+        unique=True
+    )
+    phone = models.CharField(
+        max_length=13,
+        verbose_name='teléfono',
+        validators=[phone_validator],
+        unique=True,
+        help_text='Formato: +573001234567'
+    )
+    
+    # Billing/Collection Contact (Cobranza)
+    firstname_cobranza = models.CharField(
+        max_length=100,
+        verbose_name='nombre contacto cobranza',
+        null=True,
+        blank=True
+    )
+    lastname_cobranza = models.CharField(
+        max_length=100,
+        verbose_name='apellido contacto cobranza',
+        null=True,
+        blank=True
+    )
+    email_cobranza = models.EmailField(
+        verbose_name='correo cobranza',
+        unique=True,
+        null=True,
+        blank=True
+    )
+    phone_cobranza = models.CharField(
+        max_length=13,
+        verbose_name='teléfono cobranza',
+        validators=[phone_validator],
+        unique=True,
+        null=True,
+        blank=True,
+        help_text='Formato: +573001234567'
+    )
+    
+    # External System IDs
+    id_hs = models.CharField(
+        max_length=100,
+        verbose_name='HubSpot ID',
+        null=True,
+        blank=True,
+        unique=True
+    )
+    id_bubble = models.CharField(
+        max_length=100,
+        verbose_name='Bubble ID',
+        null=True,
+        blank=True,
+        unique=True
+    )
+    
+    # Metadata
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='fecha de creación'
+    )
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True,
+        verbose_name='fecha de actualización'
+    )
+    
+    def __str__(self):
+        if self.tipo_de_persona_natural_o_juridica == 'Jurídica' and self.company:
+            return f'{self.company} ({self.id_colombia})'
+        return f'{self.firstname} {self.lastname} ({self.id_colombia})'
+    
+    class Meta:
+        verbose_name = 'Cliente'
+        verbose_name_plural = 'Clientes'
+        ordering = ['-fecha_creacion']
 
 class Departamento(models.Model):
     nombre_departamento = models.CharField(max_length=100, verbose_name='nombre del departamento', unique=True)
@@ -34,6 +153,7 @@ class MarcasInversores(models.Model):
 
 class Proyecto(models.Model):
     dealname = models.CharField(max_length=255, verbose_name= 'nombre del proyecto')
+    id_cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, verbose_name= 'cliente', related_name='proyectos', null=True, blank=True)
     id_ciudad = models.ForeignKey(Ciudad, on_delete=models.CASCADE, verbose_name= 'ciudad', default=1125)
     energia_prometida_mes = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía prometida en el mes', null=True, blank=True)
     energia_minima_mes = models.DecimalField(max_digits=10, decimal_places=2, verbose_name= 'energía mínima prometida en el mes', null=True, blank=True)

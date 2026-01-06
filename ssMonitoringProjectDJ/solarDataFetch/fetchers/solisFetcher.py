@@ -165,15 +165,27 @@ class SolisFetcher:
                 logger.error(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| Solis API returned error for batch {batch_number}: {error_msg} (code {error_code})")
                 raise RuntimeError(f"Solis API error (code {error_code}): {error_msg}")
                 
-            # Transform to required output structure, ensuring PVYield is 0 when no data
-            result_list = [
-                {
+            # Transform to required output structure
+            # If condCodeD is "305" and energy is 0, treat as no data (None)
+            # Otherwise use the actual energy value
+            result_list = []
+            for rec in parsed.get("data", {}).get("records", []):
+                energy = rec.get("energy")
+                cond_code = rec.get("condCodeD")
+                
+                # Check if system is offline (condCodeD=305) with 0 energy → store NULL
+                if cond_code == "305" and energy == 0.0:
+                    pv_yield = None
+                    logger.info(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| System {rec['id']} offline (condCodeD=305, energy=0), setting PVYield to NULL")
+                else:
+                    pv_yield = energy
+                
+                result_list.append({
                     "id": rec["id"],
                     "collectTime": rec["dateStr"],
-                    "PVYield": rec.get("energy")  # Allow None values
-                }
-                for rec in parsed.get("data", {}).get("records", [])
-            ]
+                    "PVYield": pv_yield
+                })
+            
             
             logger.info(f"|SolisFetcher|fetch_solis_generacion_sistema_dia| Solis system generation data fetched successfully for batch {batch_number}: {len(result_list)} systems")
             return result_list
@@ -237,8 +249,8 @@ class SolisFetcher:
             # Extract last eToday value and format output
             data_array = parsed.get("data", [])
             if not data_array:
-                logger.warning(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| No data found for Solis inverter {inverter_id} on {collect_time}, returning 0 production")
-                # Return 0 production if no data found
+                logger.warning(f"|SolisFetcher|fetch_solis_generacion_un_inversor_dia| No data found for Solis inverter {inverter_id} on {collect_time} (offline/no WiFi), returning NULL")
+                # Return NULL when no data found (inverter offline)
                 return {
                     'identificador_inversor': f'{inverter_id}',
                     'collectTime': datetime.strptime(collect_time, "%Y-%m-%d").strftime("%d-%m-%Y"),

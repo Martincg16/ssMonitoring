@@ -35,7 +35,7 @@ def insert_huawei_generacion_sistema_dia(data):
         pvyield = entry.get('PVYield')
         collect_time = entry.get('collectTime')
         
-        if not (station_code and pvyield is not None and collect_time):
+        if not (station_code and collect_time):
             logger.warning(f"|HuaweiStore|insert_huawei_generacion_sistema_dia| Incomplete entry skipped: {entry}")
             skipped_entries += 1
             continue  # Skip incomplete entries
@@ -92,7 +92,7 @@ def insert_huawei_generacion_inversor_dia(data):
         product_power = entry.get('product_power')
         collect_time = entry.get('collectTime')
         
-        if not (identificador_inversor and product_power is not None and collect_time):
+        if not (identificador_inversor and collect_time):
             logger.warning(f"|HuaweiStore|insert_huawei_generacion_inversor_dia| Incomplete entry skipped: {entry}")
             skipped_entries += 1
             continue  # Skip incomplete entries

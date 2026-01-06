@@ -35,7 +35,7 @@ def insert_solis_generacion_sistema_dia(data):
         pvyield = entry.get('PVYield')
         collect_time = entry.get('collectTime')
         
-        if not (station_id and pvyield is not None and collect_time):
+        if not (station_id and collect_time):
             logger.warning(f"|SolisStore|insert_solis_generacion_sistema_dia| Incomplete entry skipped: {entry}")
             skipped_entries += 1
             continue  # Skip incomplete entries
@@ -94,7 +94,7 @@ def insert_solis_generacion_inversor_dia(data):
     pvyield = data.get('PVYield')
     collect_time = data.get('collectTime')
     
-    if not (identificador_inversor and pvyield is not None and collect_time):
+    if not (identificador_inversor and collect_time):
         logger.warning(f"|SolisStore|insert_solis_generacion_inversor_dia| Incomplete entry skipped: {data}")
         return  # Skip incomplete entry
     

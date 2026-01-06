@@ -59,14 +59,17 @@ inverters = register_and_fetch_huawei_history(token, station_code)
 
 ### Solis
 1. Look for any new project via solarDataFetch/solisApi.list_plants_api()
-2. Add the plan manually to the database proyecto. Can be using pgAdmin or the Shell or DjangoAdmin
-3. In the shell run
+python manage.py shell
+>>> from solarDataFetch.fetchers.solisApi import list_plants_api
+>>> list_plants_api()
+2. Run in the terminal (with ssh tunnel open):
+python manage.py shell -c "from solarDataNewSystem.register.solisRegister import SolisRegister; sr = SolisRegister(); result = sr.solis_register_new_project()"
 
 ### Hoymiles
 1. Make sure to follow instructions to run local to db
 2. python manage.py shell
 3. >>> from solarDataNewSystem.register.hoymilesRegister import register_hoymiles_project
-   >>> register_hoymiles_project('id_project')
+   >>> register_hoymiles_project('id_project') //project id from the hoymiles url
 
 
 ## solarDataFetch Outputs
@@ -89,12 +92,17 @@ Terraform
 
 # Run local to use db
 
-1. create the ssh tunnel
+1. create the ssh tunnel in a new terminal
 ssh -i "$env:USERPROFILE\.ssh\id_rsa" -L 5433:ss-monitoring-db.cub240qeyxgi.us-east-1.rds.amazonaws.com:5432 -N ec2-user@54.91.46.23
 
 2. set the environment 
 $env:DB_HOST="localhost"; $env:DB_PORT="5433"; $env:DB_NAME=REAL DB NAME; $env:DB_USER=REAL USER; $env:DB_PASSWORD=REAL PASSOWRD
+
+3. check if correctly connected to db
 python manage.py shell
+from solarData.models import Proyecto
+p1 = Proyecto.objects.first()
+print(p1)
 
 ========================================================================================
 # AI Assistant (Cursor) Rules

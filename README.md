@@ -13,9 +13,6 @@ DÓNDE QUEDÉ
 
 DESPUÉS
 
-- Agregar null en solis
-- Agregar null en huawei
-
 ========================================================================================
 
 A monitoring system for tracking and managing server status.

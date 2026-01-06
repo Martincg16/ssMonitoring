@@ -4,12 +4,17 @@
 TO-DO
 
 - Agregar capacidad de inversor en inversores
-- Agregar 0/null en hoymiles
+- Agregar 0/null en hoymiles y otros
 - Agregar reporte de "últimos 15 días de energía"
 
-- 0 es diferente de null
-
 DÓNDE QUEDÉ
+
+- Agregar null en Hoymiles
+
+DESPUÉS
+
+- Agregar null en solis
+- Agregar null en huawei
 
 ========================================================================================
 

@@ -7,12 +7,6 @@ TO-DO
 - Agregar 0/null en hoymiles y otros
 - Agregar reporte de "últimos 15 días de energía"
 
-DÓNDE QUEDÉ
-
-- Agregar null en Hoymiles
-
-DESPUÉS
-
 ========================================================================================
 
 A monitoring system for tracking and managing server status.
@@ -31,12 +25,12 @@ http://{ip address}:8000/admin/
 1. Look for the new project via Postman /stations via List plants
 2. Add the plant manually to the database proyecto. Can be using PgAdmin or the Shell.
 3. In the Shell run:
-from solarDataNewSystem.register.huaweiRegister import register_and_fetch_huawei_history
+from solarDataNewSystem.register.huaweiRegister import register_huawei_inverters
 from solarDataFetch.fetchers.huaweiFetcher import HuaweiFetcher
 fetcher = HuaweiFetcher()
 token = fetcher.login()
 station_code = 'NE=34096408'  # Replace with your actual code
-inverters = register_and_fetch_huawei_history(token, station_code)
+inverters = register_huawei_inverters(token, station_code)
 4. This creates the inverters. The MPPT will be created on their own by the fetcher + crud
 
 ### Solis

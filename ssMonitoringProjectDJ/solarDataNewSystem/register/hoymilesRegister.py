@@ -1,7 +1,7 @@
 import requests
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from solarData.models import Proyecto, Inversor, MarcasInversores, Granular
 
 logger = logging.getLogger('hoymiles_newsystem')
@@ -359,3 +359,214 @@ def register_hoymiles_project(station_code):
     except Exception as e:
         logger.error(f"|register_hoymiles_project| Failed to register station {station_code}: {e}")
         raise
+
+
+# ============================================================================
+# AUTO-REGISTRATION FUNCTIONS
+# ============================================================================
+
+def get_hoymiles_plants():
+    """
+    Fetch all Hoymiles plants from the API with pagination.
+    Uses the 'next' field for pagination until all plants are retrieved.
+    
+    Returns:
+        list: List of plant dicts with keys: id, station_name, equipe_capacitor, etc.
+    
+    Raises:
+        RuntimeError: If API request fails or returns error
+    """
+    logger.info("|HoymilesNewSystem|get_hoymiles_plants| Starting to fetch all Hoymiles plants")
+    
+    # Get API key from environment
+    api_key = os.getenv('HOYMILES_API_KEY')
+    if not api_key:
+        raise ValueError("HOYMILES_API_KEY environment variable is required")
+    
+    all_plants = []
+    next_cursor = 0
+    base_url = "https://wapi.hoymiles.com"
+    endpoint = f"v0/zhgf-core/oapi/0/findMyStations?key={api_key}"
+    url = f"{base_url}/{endpoint}"
+    
+    while True:
+        body = {"next": next_cursor}
+        logger.info(f"|HoymilesNewSystem|get_hoymiles_plants| Fetching plants with next={next_cursor}")
+        
+        try:
+            response = requests.post(url, json=body, timeout=30)
+            response.raise_for_status()
+            api_response = response.json()
+            
+            # Check API response status
+            if api_response.get("status") != "0":
+                error_msg = api_response.get("message", "Unknown error from Hoymiles API")
+                logger.error(f"|HoymilesNewSystem|get_hoymiles_plants| Hoymiles API error: {error_msg}")
+                raise RuntimeError(f"Hoymiles API error: {error_msg}")
+            
+            # Extract stations from response
+            data = api_response.get("data", {})
+            stations = data.get("stations", [])
+            
+            # Add stations to our list
+            all_plants.extend([
+                {
+                    "id": str(s["id"]),  # Convert to string for consistency
+                    "station_name": s.get("station_name", ""),
+                    "equipe_capacitor": s.get("equipe_capacitor")
+                }
+                for s in stations
+            ])
+            
+            logger.info(f"|HoymilesNewSystem|get_hoymiles_plants| Fetched {len(stations)} plants. Total so far: {len(all_plants)}")
+            
+            # Check if there are more plants to fetch
+            next_cursor = data.get("next")
+            if not next_cursor or len(stations) == 0:
+                logger.info(f"|HoymilesNewSystem|get_hoymiles_plants| No more plants to fetch (next={next_cursor}, stations={len(stations)})")
+                break
+                
+        except requests.RequestException as e:
+            logger.error(f"|HoymilesNewSystem|get_hoymiles_plants| API request failed at next={next_cursor}: {e}")
+            raise RuntimeError(f"Hoymiles API request failed: {e}") from e
+        except Exception as e:
+            logger.error(f"|HoymilesNewSystem|get_hoymiles_plants| Unexpected error at next={next_cursor}: {e}")
+            raise
+    
+    logger.info(f"|HoymilesNewSystem|get_hoymiles_plants| Successfully fetched {len(all_plants)} Hoymiles plants")
+    return all_plants
+
+def compare_plants_with_database(hoymiles_plants):
+    """
+    Compare Hoymiles plants from API with existing projects in database.
+    
+    Args:
+        hoymiles_plants (list): List of plant dicts from get_hoymiles_plants()
+    
+    Returns:
+        list: List of new plants not found in database
+    """
+    logger.info(f"|HoymilesNewSystem|compare_plants_with_database| Comparing {len(hoymiles_plants)} Hoymiles plants with database")
+    
+    # Get existing Hoymiles project IDs from database (marca_inversor_id=3)
+    existing_project_ids = set(
+        Proyecto.objects.filter(marca_inversor_id=3).values_list('identificador_planta', flat=True)
+    )
+    
+    logger.info(f"|HoymilesNewSystem|compare_plants_with_database| Found {len(existing_project_ids)} existing Hoymiles projects in database")
+    
+    # Find plants not in database
+    new_plants = []
+    for plant in hoymiles_plants:
+        if plant['id'] not in existing_project_ids:
+            new_plants.append(plant)
+            logger.info(f"|HoymilesNewSystem|compare_plants_with_database| Found new plant: {plant['station_name']} (ID: {plant['id']})")
+    
+    logger.info(f"|HoymilesNewSystem|compare_plants_with_database| Found {len(new_plants)} new plants not in database")
+    return new_plants
+
+def create_new_hoymiles_projects(new_plants):
+    """
+    Create Proyecto entries for new Hoymiles plants.
+    
+    Args:
+        new_plants (list): List of new plant dicts from compare_plants_with_database()
+    
+    Returns:
+        list: List of created Proyecto instances
+    
+    Raises:
+        RuntimeError: If Hoymiles brand (id=3) not found in database
+    """
+    logger.info(f"|HoymilesNewSystem|create_new_hoymiles_projects| Starting to create {len(new_plants)} new Hoymiles projects")
+    
+    # Get Hoymiles brand (MarcasInversores id=3)
+    try:
+        marca_hoymiles = MarcasInversores.objects.get(id=3)
+        logger.info(f"|HoymilesNewSystem|create_new_hoymiles_projects| Found Hoymiles brand: {marca_hoymiles.marca}")
+    except MarcasInversores.DoesNotExist:
+        logger.error("|HoymilesNewSystem|create_new_hoymiles_projects| MarcasInversores with id=3 (Hoymiles) not found in database")
+        raise RuntimeError("Hoymiles brand (id=3) not found in database. Please create MarcasInversores with id=3")
+    
+    created_projects = []
+    
+    for plant in new_plants:
+        plant_id = plant['id']
+        plant_name = plant['station_name']
+        capacity = plant.get('equipe_capacitor')
+        
+        try:
+            proyecto, created = Proyecto.objects.get_or_create(
+                identificador_planta=plant_id,
+                defaults={
+                    'dealname': plant_name or f"Hoymiles Plant {plant_id}",
+                    'fecha_entrada_en_operacion': date.today(),
+                    'marca_inversor': marca_hoymiles,
+                    'restriccion_de_autoconsumo': False,
+                    'capacidad_instalada_ac': capacity if capacity is not None else None,
+                    'energia_prometida_mes': None,
+                    'energia_minima_mes': None,
+                    # id_ciudad will use default from model (1125)
+                }
+            )
+            
+            if created:
+                created_projects.append(proyecto)
+                logger.info(f"|HoymilesNewSystem|create_new_hoymiles_projects| Created new Proyecto: {proyecto.dealname} (ID: {plant_id})")
+            else:
+                logger.warning(f"|HoymilesNewSystem|create_new_hoymiles_projects| Project already exists: {proyecto.dealname} (ID: {plant_id})")
+                
+        except Exception as e:
+            logger.error(f"|HoymilesNewSystem|create_new_hoymiles_projects| Error creating project {plant_id}: {e}")
+            # Continue processing other projects
+    
+    logger.info(f"|HoymilesNewSystem|create_new_hoymiles_projects| Completed creation of {len(created_projects)} new Hoymiles projects")
+    return created_projects
+
+def auto_register_hoymiles_systems():
+    """
+    Complete auto-registration workflow for Hoymiles systems:
+    1. Fetches all Hoymiles plants from the API.
+    2. Compares them with existing projects in the database.
+    3. Creates new Proyecto entries for missing plants.
+    
+    Returns:
+        dict: A summary of the registration process including:
+            - 'total_hoymiles_plants': Total plants found in Hoymiles API
+            - 'new_plants_found': Number of new plants not in database
+            - 'projects_created': List of newly created Proyecto instances
+            - 'errors': List of errors encountered during the process
+    """
+    logger.info("|HoymilesNewSystem|auto_register_hoymiles_systems| Starting complete Hoymiles auto-registration workflow")
+    
+    results = {
+        'total_hoymiles_plants': 0,
+        'new_plants_found': 0,
+        'projects_created': [],
+        'errors': []
+    }
+    
+    try:
+        # 1. Fetch all Hoymiles plants
+        hoymiles_plants = get_hoymiles_plants()
+        results['total_hoymiles_plants'] = len(hoymiles_plants)
+        
+        # 2. Compare with database to find new plants
+        new_plants = compare_plants_with_database(hoymiles_plants)
+        results['new_plants_found'] = len(new_plants)
+        
+        # 3. Create new Proyecto entries for missing plants
+        if new_plants:
+            created_projects = create_new_hoymiles_projects(new_plants)
+            results['projects_created'] = created_projects
+            logger.info(f"|HoymilesNewSystem|auto_register_hoymiles_systems| Created {len(created_projects)} new Hoymiles projects")
+        else:
+            logger.info("|HoymilesNewSystem|auto_register_hoymiles_systems| No new Hoymiles projects to create")
+            
+    except Exception as e:
+        error_msg = f"Overall error during Hoymiles auto-registration: {e}"
+        logger.error(f"|HoymilesNewSystem|auto_register_hoymiles_systems| {error_msg}")
+        results['errors'].append(error_msg)
+    
+    logger.info("|HoymilesNewSystem|auto_register_hoymiles_systems| Hoymiles auto-registration workflow completed")
+    return results

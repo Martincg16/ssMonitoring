@@ -13,101 +13,21 @@ class Cliente(models.Model):
         ('Jurídica', 'Jurídica'),
     ]
     
-    # Personal/Company Information
-    firstname = models.CharField(
-        max_length=100, 
-        verbose_name='nombre'
-    )
-    lastname = models.CharField(
-        max_length=100, 
-        verbose_name='apellido'
-    )
-    tipo_de_persona_natural_o_juridica = models.CharField(
-        max_length=20,
-        choices=TIPO_PERSONA_CHOICES,
-        verbose_name='tipo de persona'
-    )
-    company = models.CharField(
-        max_length=255,
-        verbose_name='empresa',
-        null=True,
-        blank=True,
-        help_text='Solo para personas jurídicas'
-    )
-    id_colombia = models.CharField(
-        max_length=50,
-        verbose_name='cédula/NIT',
-        unique=True,
-        help_text='Cédula de ciudadanía o NIT'
-    )
-    
-    # Contact Information
-    email = models.EmailField(
-        verbose_name='correo electrónico',
-        unique=True
-    )
-    phone = models.CharField(
-        max_length=13,
-        verbose_name='teléfono',
-        validators=[phone_validator],
-        unique=True,
-        help_text='Formato: +573001234567'
-    )
-    
-    # Billing/Collection Contact (Cobranza)
-    firstname_cobranza = models.CharField(
-        max_length=100,
-        verbose_name='nombre contacto cobranza',
-        null=True,
-        blank=True
-    )
-    lastname_cobranza = models.CharField(
-        max_length=100,
-        verbose_name='apellido contacto cobranza',
-        null=True,
-        blank=True
-    )
-    email_cobranza = models.EmailField(
-        verbose_name='correo cobranza',
-        unique=True,
-        null=True,
-        blank=True
-    )
-    phone_cobranza = models.CharField(
-        max_length=13,
-        verbose_name='teléfono cobranza',
-        validators=[phone_validator],
-        unique=True,
-        null=True,
-        blank=True,
-        help_text='Formato: +573001234567'
-    )
-    
-    # External System IDs
-    id_hs = models.CharField(
-        max_length=100,
-        verbose_name='HubSpot ID',
-        null=True,
-        blank=True,
-        unique=True
-    )
-    id_bubble = models.CharField(
-        max_length=100,
-        verbose_name='Bubble ID',
-        null=True,
-        blank=True,
-        unique=True
-    )
-    
-    # Metadata
-    fecha_creacion = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='fecha de creación'
-    )
-    fecha_actualizacion = models.DateTimeField(
-        auto_now=True,
-        verbose_name='fecha de actualización'
-    )
+    firstname = models.CharField(max_length=100, verbose_name= 'nombre')
+    lastname = models.CharField(max_length=100, verbose_name= 'apellido')
+    tipo_de_persona_natural_o_juridica = models.CharField(max_length=20, choices=TIPO_PERSONA_CHOICES, verbose_name= 'tipo de persona')
+    company = models.CharField(max_length=255, verbose_name= 'empresa', null=True, blank=True, help_text='Solo para personas jurídicas')
+    id_colombia = models.CharField(max_length=50, verbose_name= 'cédula/NIT', unique=True, help_text='Cédula de ciudadanía o NIT')
+    email = models.EmailField(verbose_name= 'correo electrónico', unique=True)
+    phone = models.CharField(max_length=13, verbose_name= 'teléfono', validators=[phone_validator], unique=True, help_text='Formato: +573001234567')
+    firstname_cobranza = models.CharField(max_length=100, verbose_name= 'nombre contacto cobranza', null=True, blank=True)
+    lastname_cobranza = models.CharField(max_length=100, verbose_name= 'apellido contacto cobranza', null=True, blank=True)
+    email_cobranza = models.EmailField(verbose_name= 'correo cobranza', unique=True, null=True, blank=True)
+    phone_cobranza = models.CharField(max_length=13, verbose_name= 'teléfono cobranza', validators=[phone_validator], unique=True, null=True, blank=True, help_text='Formato: +573001234567')
+    id_hs = models.CharField(max_length=100, verbose_name= 'HubSpot ID', null=True, blank=True, unique=True)
+    id_bubble = models.CharField(max_length=100, verbose_name= 'Bubble ID', null=True, blank=True, unique=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name= 'fecha de creación')
+    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name= 'fecha de actualización')
     
     def __str__(self):
         if self.tipo_de_persona_natural_o_juridica == 'Jurídica' and self.company:
@@ -144,6 +64,7 @@ class Ciudad(models.Model):
 class MarcasInversores(models.Model):
     marca = models.CharField(max_length=100, verbose_name= 'marca de inversor', null=True, blank=True)
     informacion_granular = models.BooleanField(default=True, verbose_name= 'tiene información de granular')
+    # 1 = hoymiles, 2 = solis, 3 = huawei
 
     def __str__(self):
         return self.marca

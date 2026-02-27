@@ -460,6 +460,9 @@ CRONJOBS = [
     
     # Run daily report at 8:00 AM Colombian time (13:00 UTC = 8:00 AM COT)
     ('0 13 * * *', 'django.core.management.call_command', ['generate_daily_report']),
+    
+    # Run auto-registration every Sunday at midnight Colombian time (5:00 AM UTC = 12:00 AM COT)
+    ('0 5 * * 0', 'django.core.management.call_command', ['system_auto_register']),
 ]
 
 # TIMEZONE-AWARE CONFIGURATION

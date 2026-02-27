@@ -164,6 +164,129 @@ Solar Monitoring System
                 'details': 'Check email configuration and parameters'
             }
     
+    def send_multiple_pdf_reports(self, pdf_paths, recipients=None, subject=None, body=None, report_date=None):
+        """
+        Send multiple PDF reports via email with attachments
+        
+        Args:
+            pdf_paths (list): List of tuples [(path, filename), ...] where path is the file path and filename is the attachment name
+            recipients (list, optional): List of email recipients
+            subject (str, optional): Email subject line
+            body (str, optional): Email body content
+            report_date (str, optional): Date for the report (used in subject)
+            
+        Returns:
+            dict: Result of email sending operation with success status and details
+        """
+        logger.info(f"Preparing to send email with {len(pdf_paths)} PDF attachments")
+        
+        try:
+            # Validate email configuration
+            if not self.from_email:
+                logger.error("No FROM email configured in settings")
+                return {
+                    'success': False,
+                    'error': 'Email FROM address not configured in settings',
+                    'details': 'Check DEFAULT_FROM_EMAIL setting'
+                }
+            
+            # Determine recipients
+            if recipients is None:
+                recipients = ['martin@rocasol.com.co']
+            elif isinstance(recipients, str):
+                recipients = [recipients]
+            
+            if not recipients:
+                logger.error("No email recipients specified")
+                return {
+                    'success': False,
+                    'error': 'No email recipients specified'
+                }
+            
+            # Set default subject if not provided
+            if subject is None:
+                date_str = report_date or "Latest"
+                subject = f"📊 Solar Production Report - {date_str}"
+            
+            # Set default body if not provided
+            if body is None:
+                body = """
+Hello,
+
+Please find attached the solar production reports (2 PDFs):
+1. Detailed Analysis Report - Complete statistical analysis with historical comparisons
+2. Basic Alerts Report - Focused alerts for immediate action items
+
+Best regards,
+Solar Monitoring System
+                """.strip()
+            
+            # Validate PDF attachments
+            if not pdf_paths or len(pdf_paths) == 0:
+                logger.error("No PDF attachments provided")
+                return {
+                    'success': False,
+                    'error': 'No PDF attachments provided'
+                }
+            
+            # Create email message
+            email = EmailMessage(
+                subject=subject,
+                body=body,
+                from_email=self.from_email,
+                to=recipients
+            )
+            
+            # Attach all PDFs
+            for pdf_path, attachment_name in pdf_paths:
+                if not os.path.exists(pdf_path):
+                    logger.error(f"PDF file not found: {pdf_path}")
+                    return {
+                        'success': False,
+                        'error': f'PDF file not found: {pdf_path}'
+                    }
+                
+                # Attach with custom filename
+                with open(pdf_path, 'rb') as f:
+                    email.attach(attachment_name, f.read(), 'application/pdf')
+                logger.debug(f"Attached PDF: {attachment_name} from {pdf_path}")
+            
+            # Send email
+            logger.info(f"Sending email with {len(pdf_paths)} attachments to {len(recipients)} recipients: {', '.join(recipients)}")
+            
+            try:
+                sent_count = email.send()
+                
+                if sent_count > 0:
+                    logger.info(f"Email sent successfully to {len(recipients)} recipients with {len(pdf_paths)} attachments")
+                    return {
+                        'success': True,
+                        'recipients': recipients,
+                        'subject': subject,
+                        'attachments_count': len(pdf_paths),
+                        'sent_count': sent_count
+                    }
+                else:
+                    logger.warning("Email send returned 0 - may indicate delivery issues")
+                    return {
+                        'success': False,
+                        'error': 'Email send returned 0'
+                    }
+                    
+            except Exception as send_error:
+                logger.error(f"Failed to send email: {str(send_error)}")
+                return {
+                    'success': False,
+                    'error': f'Email sending failed: {str(send_error)}'
+                }
+                
+        except Exception as e:
+            logger.error(f"Error preparing email: {str(e)}")
+            return {
+                'success': False,
+                'error': f'Email preparation failed: {str(e)}'
+            }
+    
     def _generate_attachment_filename(self, report_date=None):
         """
         Generate a descriptive filename for the PDF attachment

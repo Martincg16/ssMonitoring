@@ -344,3 +344,294 @@ class SolarDataReporter:
         except Exception as e:
             logger.error(f"Error translating deviation analysis results: {str(e)}")
             return f"Error generating deviation analysis report: {str(e)}"
+    
+    def translate_systems_no_target(self, result):
+        """
+        Converts systems with no energy target check to readable text
+        
+        Args:
+            result (dict): Output from check_systems_no_target
+            
+        Returns:
+            str: Human-readable text report
+        """
+        logger.debug(f"Translating systems with no target results")
+        
+        try:
+            report_lines = []
+            
+            # Header
+            report_lines.append("=" * 60)
+            report_lines.append("SYSTEMS WITH NO ENERGY TARGET DEFINED")
+            report_lines.append("=" * 60)
+            report_lines.append("")
+            
+            systems = result.get('systems', [])
+            total_count = result['summary']['total_count']
+            
+            if total_count > 0:
+                report_lines.append(f"CRITICAL: {total_count} systems have no energia_prometida_mes defined (NULL or 0)")
+                report_lines.append("These systems cannot be evaluated for performance targets.")
+                report_lines.append("")
+                report_lines.append("Systems requiring target definition:")
+                report_lines.append("-" * 40)
+                for system in systems:
+                    report_lines.append(f"• {system['name']} (ID: {system['id']})")
+                report_lines.append("")
+                report_lines.append("RECOMMENDED ACTION:")
+                report_lines.append("  • Update energia_prometida_mes for these systems in Django Admin")
+                report_lines.append("")
+            else:
+                report_lines.append("All systems have energy targets defined.")
+                report_lines.append("")
+            
+            logger.info(f"Successfully translated systems no target results: {total_count} systems")
+            return "\n".join(report_lines)
+            
+        except Exception as e:
+            logger.error(f"Error translating systems no target results: {str(e)}")
+            return f"Error generating systems no target report: {str(e)}"
+
+    def translate_systems_zero_production(self, result):
+        """
+        Converts systems with 0 production check to readable text
+        
+        Args:
+            result (dict): Output from check_systems_zero_production_single_day
+            
+        Returns:
+            str: Human-readable text report
+        """
+        logger.debug(f"Translating systems with 0 production for date: {result.get('date', 'unknown')}")
+        
+        try:
+            report_lines = []
+            date_str = result.get('date', 'Unknown Date')
+            
+            # Header
+            report_lines.append("=" * 60)
+            report_lines.append("SYSTEMS WITH ZERO PRODUCTION")
+            report_lines.append("=" * 60)
+            report_lines.append(f"Analysis Date: {date_str}")
+            report_lines.append("")
+            
+            systems = result.get('systems', [])
+            total_count = result['summary']['total_count']
+            
+            if total_count > 0:
+                report_lines.append(f"Found {total_count} systems with ZERO production (0 kWh):")
+                report_lines.append("-" * 40)
+                for system in systems:
+                    report_lines.append(f"• {system['name']} (ID: {system['id']})")
+                report_lines.append("")
+                report_lines.append("RECOMMENDED ACTION:")
+                report_lines.append("  • Investigate equipment issues or maintenance needs")
+                report_lines.append("")
+            else:
+                report_lines.append("No systems with 0 production detected.")
+                report_lines.append("")
+            
+            logger.info(f"Successfully translated systems 0 production results: {total_count} systems")
+            return "\n".join(report_lines)
+            
+        except Exception as e:
+            logger.error(f"Error translating systems 0 production results: {str(e)}")
+            return f"Error generating systems 0 production report: {str(e)}"
+
+    def translate_systems_null_or_missing(self, result):
+        """
+        Converts systems with null or missing data check to readable text
+        
+        Args:
+            result (dict): Output from check_systems_null_or_missing_single_day
+            
+        Returns:
+            str: Human-readable text report
+        """
+        logger.debug(f"Translating systems with null/missing data for date: {result.get('date', 'unknown')}")
+        
+        try:
+            report_lines = []
+            date_str = result.get('date', 'Unknown Date')
+            
+            # Header
+            report_lines.append("=" * 60)
+            report_lines.append("SYSTEMS WITH NULL OR MISSING DATA")
+            report_lines.append("=" * 60)
+            report_lines.append(f"Analysis Date: {date_str}")
+            report_lines.append("")
+            
+            systems = result.get('systems', [])
+            total_count = result['summary']['total_count']
+            
+            if total_count > 0:
+                report_lines.append(f"Found {total_count} systems with NULL or missing production data:")
+                report_lines.append("-" * 40)
+                for system in systems:
+                    report_lines.append(f"• {system['name']} (ID: {system['id']})")
+                report_lines.append("")
+                report_lines.append("RECOMMENDED ACTION:")
+                report_lines.append("  • Verify communication links and API connectivity")
+                report_lines.append("  • Check if systems are offline or without WiFi")
+                report_lines.append("")
+            else:
+                report_lines.append("All systems reported data (no null/missing records).")
+                report_lines.append("")
+            
+            logger.info(f"Successfully translated systems null/missing results: {total_count} systems")
+            return "\n".join(report_lines)
+            
+        except Exception as e:
+            logger.error(f"Error translating systems null/missing results: {str(e)}")
+            return f"Error generating systems null/missing report: {str(e)}"
+
+    def translate_systems_under_target_15d(self, result):
+        """
+        Converts 15-day target comparison check to readable text
+        
+        Args:
+            result (dict): Output from check_systems_under_target_15d
+            
+        Returns:
+            str: Human-readable text report
+        """
+        logger.debug(f"Translating 15-day target results for date: {result.get('date', 'unknown')}")
+        
+        try:
+            report_lines = []
+            date_str = result.get('date', 'Unknown Date')
+            start_date_str = result.get('start_date', 'Unknown')
+            
+            # Header
+            report_lines.append("=" * 60)
+            report_lines.append("SYSTEMS UNDER TARGET (15-DAY WINDOW)")
+            report_lines.append("=" * 60)
+            report_lines.append(f"Analysis Period: {start_date_str} to {date_str}")
+            report_lines.append("")
+            
+            systems = result.get('systems', [])
+            total_count = result['summary']['total_count']
+            
+            if total_count > 0:
+                report_lines.append(f"Found {total_count} systems below their 15-day energy target:")
+                report_lines.append("(Target = energia_prometida_mes / 2)")
+                report_lines.append("-" * 40)
+                for system in systems:
+                    report_lines.append(f"• {system['name']} (ID: {system['id']})")
+                    report_lines.append(f"  15-day total: {system['total_15d']:.2f} kWh | Target: {system['target']:.2f} kWh")
+                    shortfall = system['target'] - system['total_15d']
+                    percent_below = (shortfall / system['target']) * 100
+                    report_lines.append(f"  Shortfall: {shortfall:.2f} kWh ({percent_below:.1f}% below target)")
+                report_lines.append("")
+                report_lines.append("RECOMMENDED ACTION:")
+                report_lines.append("  • Investigate underperforming systems")
+                report_lines.append("  • Check for equipment degradation or maintenance needs")
+                report_lines.append("")
+            else:
+                report_lines.append("All systems met their 15-day energy targets.")
+                report_lines.append("")
+            
+            logger.info(f"Successfully translated 15-day target results: {total_count} systems")
+            return "\n".join(report_lines)
+            
+        except Exception as e:
+            logger.error(f"Error translating 15-day target results: {str(e)}")
+            return f"Error generating 15-day target report: {str(e)}"
+
+    def translate_inverters_zero_conditional(self, result):
+        """
+        Converts conditional inverter 0-check to readable text
+        
+        Args:
+            result (dict): Output from check_inverters_zero_conditional_single_day
+            
+        Returns:
+            str: Human-readable text report
+        """
+        logger.debug(f"Translating conditional inverter results for date: {result.get('date', 'unknown')}")
+        
+        try:
+            report_lines = []
+            date_str = result.get('date', 'Unknown Date')
+            
+            # Header
+            report_lines.append("=" * 60)
+            report_lines.append("INVERTERS WITH ZERO PRODUCTION")
+            report_lines.append("=" * 60)
+            report_lines.append(f"Analysis Date: {date_str}")
+            report_lines.append("(Only showing inverters where parent system produced energy)")
+            report_lines.append("")
+            
+            inverters = result.get('inverters', [])
+            total_count = result['summary']['total_count']
+            
+            if total_count > 0:
+                report_lines.append(f"Found {total_count} inverters with 0 production while system produced:")
+                report_lines.append("-" * 40)
+                for inv in inverters:
+                    report_lines.append(f"• Inverter ID: {inv['inverter_id']} in {inv['system_name']}")
+                    report_lines.append(f"  System: {inv['system_kwh']:.2f} kWh | Inverter: 0 kWh")
+                report_lines.append("")
+                report_lines.append("RECOMMENDED ACTION:")
+                report_lines.append("  • Check inverter-specific equipment issues")
+                report_lines.append("  • Verify inverter communication and status")
+                report_lines.append("")
+            else:
+                report_lines.append("No inverter-specific issues detected.")
+                report_lines.append("")
+            
+            logger.info(f"Successfully translated conditional inverter results: {total_count} inverters")
+            return "\n".join(report_lines)
+            
+        except Exception as e:
+            logger.error(f"Error translating conditional inverter results: {str(e)}")
+            return f"Error generating conditional inverter report: {str(e)}"
+
+    def translate_granular_zero_conditional(self, result):
+        """
+        Converts conditional granular 0-check to readable text
+        
+        Args:
+            result (dict): Output from check_granular_zero_conditional_single_day
+            
+        Returns:
+            str: Human-readable text report
+        """
+        logger.debug(f"Translating conditional granular results for date: {result.get('date', 'unknown')}")
+        
+        try:
+            report_lines = []
+            date_str = result.get('date', 'Unknown Date')
+            
+            # Header
+            report_lines.append("=" * 60)
+            report_lines.append("GRANULAR DEVICES WITH ZERO PRODUCTION")
+            report_lines.append("=" * 60)
+            report_lines.append(f"Analysis Date: {date_str}")
+            report_lines.append("(Only showing granular where parent inverter produced energy)")
+            report_lines.append("")
+            
+            granular = result.get('granular', [])
+            total_count = result['summary']['total_count']
+            
+            if total_count > 0:
+                report_lines.append(f"Found {total_count} granular devices with 0 production while inverter produced:")
+                report_lines.append("-" * 40)
+                for gran in granular:
+                    report_lines.append(f"• Granular ID: {gran['granular_id']} in {gran['system_name']}")
+                    report_lines.append(f"  Inverter: {gran['inverter_kwh']:.2f} kWh | Granular: 0 kWh")
+                report_lines.append("")
+                report_lines.append("RECOMMENDED ACTION:")
+                report_lines.append("  • Check MPPT/string-specific equipment issues")
+                report_lines.append("  • Verify granular device communication")
+                report_lines.append("")
+            else:
+                report_lines.append("No granular device-specific issues detected.")
+                report_lines.append("")
+            
+            logger.info(f"Successfully translated conditional granular results: {total_count} granular")
+            return "\n".join(report_lines)
+            
+        except Exception as e:
+            logger.error(f"Error translating conditional granular results: {str(e)}")
+            return f"Error generating conditional granular report: {str(e)}"

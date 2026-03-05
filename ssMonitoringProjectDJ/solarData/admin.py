@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from solarData.models import Cliente, Departamento, Ciudad, MarcasInversores, Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria
+from solarData.models import Cliente, Departamento, Ciudad, MarcasInversores, Proyecto, GeneracionEnergiaDiaria, Inversor, GeneracionInversorDiaria, Granular, GeneracionGranularDiaria, Instalador
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
@@ -113,6 +113,12 @@ class CiudadAdmin(admin.ModelAdmin):
     list_display = ('nombre_ciudad', 'id_departamento')
     list_filter = ('id_departamento',)
     search_fields = ('nombre_ciudad', 'id_departamento__nombre_departamento')
+
+@admin.register(Instalador)
+class InstaladorAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'id_bubble', 'fecha_creacion')
+    search_fields = ('nombre', 'id_bubble')
+    readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
 
 @admin.register(MarcasInversores)
 class MarcasInversoresAdmin(admin.ModelAdmin):

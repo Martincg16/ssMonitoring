@@ -19,5 +19,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('solarData.urls')),  # Include solarData URLs at root level
+    path('', include('solarData.urls')),
+    path('api/ops/', include('opsInstallerDashboard.api.urls')),
 ]

@@ -49,7 +49,9 @@ INSTALLED_APPS = [
     "solarDataFetch",
     "solarDataStore",
     "solarDataNewSystem",
-    "solarDataReports",  # Added this line
+    "solarDataReports",
+    "ops",
+    "opsInstallerDashboard",
 ]
 
 MIDDLEWARE = [

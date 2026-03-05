@@ -61,6 +61,21 @@ class Ciudad(models.Model):
         verbose_name_plural = 'Ciudades'
         unique_together = ('nombre_ciudad', 'id_departamento')
 
+class Instalador(models.Model):
+    nombre = models.CharField(max_length=200, verbose_name= 'nombre')
+    id_bubble = models.CharField(max_length=100, verbose_name= 'Bubble ID', null=True, blank=True, unique=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name= 'fecha de creación')
+    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name= 'fecha de actualización')
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = 'Instalador'
+        verbose_name_plural = 'Instaladores'
+        ordering = ['nombre']
+
+
 class MarcasInversores(models.Model):
     marca = models.CharField(max_length=100, verbose_name= 'marca de inversor', null=True, blank=True)
     informacion_granular = models.BooleanField(default=True, verbose_name= 'tiene información de granular')
@@ -84,6 +99,8 @@ class Proyecto(models.Model):
     marca_inversor = models.ForeignKey(MarcasInversores, on_delete=models.CASCADE, verbose_name= 'marca de inversor', null=True, blank=True)
     capacidad_instalada_ac = models.DecimalField(max_digits=10, decimal_places=3, verbose_name= 'capacidad instalada AC', null=True, blank=True)
     capacidad_instalada_dc = models.DecimalField(max_digits=10, decimal_places=3, verbose_name= 'capacidad instalada DC', null=True, blank=True)
+    pid = models.BigIntegerField(verbose_name= 'pid', null=True, blank=True, unique=True)
+    id_instalador = models.ForeignKey(Instalador, on_delete=models.SET_NULL, verbose_name= 'instalador', related_name= 'proyectos', null=True, blank=True)
 
     def __str__(self):
         return self.dealname
